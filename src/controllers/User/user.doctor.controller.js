@@ -6,6 +6,7 @@ const ChucVu = require('../../model/ChucVu'); // Đường dẫn đến model c�
 const Role = require('../../model/Role'); // Đường dẫn đến model của bạn
 const Doctor = require('../../model/Doctor');
 const ThoiGianThu = require('../../model/ThoiGianThu');
+const PhongKham = require('../../model/PhongKham');
 require('dotenv').config();
 // Secret key cho JWT
 const JWT_SECRET = process.env.JWT_SECRET; 
@@ -13,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 module.exports = {
     fetchAllDoctor: async (req, res) => {
         try {
-            const { page = 1, limit = 5 } = req.query; // Lấy trang và kích thước trang từ query
+            const { page, limit } = req.query; // Lấy trang và kích thước trang từ query
 
              // Chuyển đổi thành số
             const pageNumber = parseInt(page, 10);
@@ -39,19 +40,6 @@ module.exports = {
                 currentPage: pageNumber,
                 message: "Đã tìm ra tất cả bác sĩ",
             });
-
-            // let fetchAll = await Doctor.find({}).populate("chucVuId chuyenKhoaId phongKhamId roleId thoiGianKhamId")
-            
-            // if(fetchAll) {
-            //     return res.status(200).json({
-            //         data: fetchAll,
-            //         message: "đã tìm ra tất cả doctor"
-            //     })
-            // } else {
-            //     return res.status(404).json({                
-            //         message: "tìm ra tất cả doctor thất bại"
-            //     })
-            // }
 
         } catch(error) {
             console.error(error);
@@ -80,7 +68,55 @@ module.exports = {
         } catch(error) {
             console.error(error);
             return res.status(500).json({
-                message: "Có lỗi xảy ra khi tìm tài khoản bác sĩ.",
+                message: "Có lỗi xảy ra khi tìm Chuyên khoa của bác sĩ.",
+                error: error.message,
+            });
+        }
+    },
+
+    fetchAllChucVu: async (req, res) => {
+        try {
+            let fetchAll = await ChucVu.find({})
+            
+            if(fetchAll) {
+                return res.status(200).json({
+                    data: fetchAll,
+                    message: "đã tìm ra tất cả ChucVu"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "tìm ra tất cả ChucVu thất bại"
+                })
+            }
+
+        } catch(error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi tìm chức vụ của bác sĩ.",
+                error: error.message,
+            });
+        }
+    },
+
+    fetchAllPhongKham: async (req, res) => {
+        try {
+            let fetchAll = await PhongKham.find({})
+            
+            if(fetchAll) {
+                return res.status(200).json({
+                    data: fetchAll,
+                    message: "đã tìm ra tất cả PhongKham"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "tìm ra tất cả PhongKham thất bại"
+                })
+            }
+
+        } catch(error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi tìm phòng khám của bác sĩ.",
                 error: error.message,
             });
         }
