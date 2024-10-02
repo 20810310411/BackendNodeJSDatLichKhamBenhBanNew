@@ -4,6 +4,10 @@ const router = express.Router();
 
 // route create doctor
 router.post("/create-doctor", userDoctor.createDoctor );
+// route update doctor
+router.put("/update-doctor", userDoctor.updateDoctor );
+// route delete doctor
+router.delete("/delete-doctor/:id", userDoctor.deleteDoctor );
 // get all doctor
 router.get("/fetch-all-doctor", userDoctor.fetchAllDoctor );
 // get all Chuyên khoa

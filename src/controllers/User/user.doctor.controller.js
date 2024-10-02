@@ -126,6 +126,10 @@ module.exports = {
         try {
             let {email, password, firstName, lastName, address, phoneNumber, 
                 chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota, thoiGianKhamId} = req.body
+
+                console.log("chucVuId: ",chucVuId);
+                console.log("chuyenKhoaId: ",chuyenKhoaId);
+                
             
             if (!email || !password || !firstName || !lastName) {
                 return res.status(400).json({
@@ -144,8 +148,14 @@ module.exports = {
             const hashedPassword = await bcrypt.hash(password, 10);
 
             let createDoctor = await Doctor.create({
-                email, password: hashedPassword, firstName, lastName, address, phoneNumber, 
-                chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota, thoiGianKhamId
+                email, 
+                password: hashedPassword, 
+                firstName, lastName, address, phoneNumber, 
+                chucVuId: chucVuId || [], 
+                gender, image, 
+                chuyenKhoaId: chuyenKhoaId || [], 
+                phongKhamId, roleId, mota, 
+                thoiGianKhamId
             })
             
             if(createDoctor) {
@@ -166,6 +176,65 @@ module.exports = {
                 message: "Có lỗi xảy ra khi thêm tài khoản bác sĩ.",
                 error: error.message,
             });
+        }
+    },
+
+    updateDoctor: async (req, res) => {
+        try {
+            let {_id, email, password, firstName, lastName, address, phoneNumber, 
+                chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota, thoiGianKhamId} = req.body
+
+                console.log("id: ",_id);                     
+
+            // Hash the password
+            // const hashedPassword = await bcrypt.hash(password, 10);
+
+            let createDoctor = await Doctor.updateOne({_id: _id},{
+                email, 
+                // password: hashedPassword, 
+                firstName, lastName, address, phoneNumber, 
+                chucVuId: chucVuId || [], 
+                gender, image, 
+                chuyenKhoaId: chuyenKhoaId || [], 
+                phongKhamId, roleId, mota, 
+                thoiGianKhamId
+            })
+            
+            if(createDoctor) {
+                console.log("Chỉnh sửa thành công tài khoản");
+                return res.status(200).json({
+                    data: createDoctor,
+                    message: "Chỉnh sửa tài khoản bác sĩ thành công"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "Chỉnh sửa tài khoản bác sĩ thất bại"
+                })
+            }
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi Chỉnh sửa tài khoản bác sĩ.",
+                error: error.message,
+            });
+        }
+    },
+
+    deleteDoctor: async (req, res) => {
+        const _id = req.params.id
+
+        let xoaAD = await Doctor.deleteOne({_id: _id})
+
+        if(xoaAD) {
+            return res.status(200).json({
+                data: xoaAD,
+                message: "Bạn đã xoá tài khoản bác sĩ thành công!"
+            })
+        } else {
+            return res.status(500).json({
+                message: "Bạn đã xoá tài khoản bác sĩ thất bại!"
+            })
         }
     }
 }
