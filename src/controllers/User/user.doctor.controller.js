@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 module.exports = {
     fetchAllDoctor: async (req, res) => {
         try {
-            const { page, limit } = req.query; // Lấy trang và kích thước trang từ query
+            const { page, limit, firstName, lastName } = req.query; // Lấy trang và kích thước trang từ query
 
              // Chuyển đổi thành số
             const pageNumber = parseInt(page, 10);
@@ -23,13 +23,36 @@ module.exports = {
             // Tính toán số bản ghi bỏ qua
             const skip = (pageNumber - 1) * limitNumber;
 
+            // Tạo query tìm kiếm
+            const query = {};
+            // if (firstName) {
+            //     query.firstName = { $regex: firstName, $options: 'i' }; // Tìm kiếm không phân biệt chữ hoa chữ thường
+            // }
+            // if (lastName) {
+            //     query.lastName = { $regex: lastName, $options: 'i' };
+            // }
+            // Tạo điều kiện tìm kiếm
+            if (firstName || lastName) {
+                const searchKeywords = (firstName || '') + ' ' + (lastName || '');
+                const keywordsArray = searchKeywords.trim().split(/\s+/);
+
+                const searchConditions = keywordsArray.map(keyword => ({
+                    $or: [
+                        { firstName: { $regex: keyword, $options: 'i' } },
+                        { lastName: { $regex: keyword, $options: 'i' } }
+                    ]
+                }));
+
+                query.$or = searchConditions;
+            }
+
             // Tìm tất cả bác sĩ với phân trang
-            const fetchAll = await Doctor.find({})
+            const fetchAll = await Doctor.find(query)
                 .populate("chucVuId chuyenKhoaId phongKhamId roleId thoiGianKhamId")
                 .skip(skip)
                 .limit(limitNumber);
 
-            const totalDoctors = await Doctor.countDocuments(); // Đếm tổng số bác sĩ
+            const totalDoctors = await Doctor.countDocuments(query); // Đếm tổng số bác sĩ
 
             const totalPages = Math.ceil(totalDoctors / limitNumber); // Tính số trang
 
