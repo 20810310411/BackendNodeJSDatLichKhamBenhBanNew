@@ -28,5 +28,11 @@ router.delete("/delete-chuc-vu/:id", userDoctor.deleteChucVu );
 
 // get all phòng khám
 router.get("/fetch-all-phong-kham", userDoctor.fetchAllPhongKham );
+// route create phòng khám
+router.post("/create-phong-kham", userDoctor.createPhongKham );
+// route delete phòng khám
+router.delete("/delete-phong-kham/:id", userDoctor.deletePhongKham );
+// route update Chức vụ
+router.put("/update-phong-kham", userDoctor.updatePhongKham );
 
 module.exports = router;

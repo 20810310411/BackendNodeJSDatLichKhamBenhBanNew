@@ -292,6 +292,41 @@ module.exports = {
         }
     },
 
+    createPhongKham: async (req, res) => {
+        try {
+            let {name, address, description , image} = req.body       
+            console.log("anhr: ", image);
+                    
+            
+            if (!name || !address) {
+                return res.status(400).json({
+                    message: "Vui lòng cung cấp đầy đủ thông tin (tên phòng khám, địa chỉ)"
+                });
+            }                   
+
+            let createPhongKham = await PhongKham.create({name, address, description , image})
+            
+            if(createPhongKham) {
+                console.log("thêm thành công phòng khám");
+                return res.status(200).json({
+                    data: createPhongKham,
+                    message: "Thêm phòng khám thành công"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "Thêm phòng khám thất bại"
+                })
+            }
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi thêm phòng khám.",
+                error: error.message,
+            });
+        }
+    },
+
 
     updateDoctor: async (req, res) => {
         try {
@@ -364,6 +399,33 @@ module.exports = {
         }
     },
 
+    updatePhongKham: async (req, res) => {
+        try {
+            let {_id, name, address, description, image} = req.body
+            
+            let createPhongKham = await PhongKham.updateOne({_id: _id},{name, address, description, image})
+            
+            if(createPhongKham) {
+                console.log("Chỉnh sửa thành công tài khoản");
+                return res.status(200).json({
+                    data: createPhongKham,
+                    message: "Chỉnh sửa phòng khám thành công"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "Chỉnh sửa phòng khám thất bại"
+                })
+            }
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi Chỉnh sửa phòng khám.",
+                error: error.message,
+            });
+        }
+    },
+
 
     deleteDoctor: async (req, res) => {
         const _id = req.params.id
@@ -395,6 +457,23 @@ module.exports = {
         } else {
             return res.status(500).json({
                 message: "Bạn đã xoá chức vụ bác sĩ thất bại!"
+            })
+        }
+    },
+
+    deletePhongKham: async (req, res) => {
+        const _id = req.params.id
+
+        let xoaAD = await PhongKham.deleteOne({_id: _id})
+
+        if(xoaAD) {
+            return res.status(200).json({
+                data: xoaAD,
+                message: "Bạn đã xoá phòng khám thành công!"
+            })
+        } else {
+            return res.status(500).json({
+                message: "Bạn đã xoá phòng khám thất bại!"
             })
         }
     }
