@@ -100,9 +100,7 @@ module.exports = {
 
     fetchAllChucVu: async (req, res) => {
         try {
-            const { page, limit, name } = req.query; // Lấy trang và kích thước trang từ query
-            console.log("tencv: ", name);
-            
+            const { page, limit, name } = req.query; // Lấy trang và kích thước trang từ query            
 
             // Chuyển đổi thành số
             const pageNumber = parseInt(page, 10);
@@ -146,18 +144,45 @@ module.exports = {
 
     fetchAllPhongKham: async (req, res) => {
         try {
-            let fetchAll = await PhongKham.find({})
-            
-            if(fetchAll) {
-                return res.status(200).json({
-                    data: fetchAll,
-                    message: "đã tìm ra tất cả PhongKham"
-                })
-            } else {
-                return res.status(404).json({                
-                    message: "tìm ra tất cả PhongKham thất bại"
-                })
+            const { page, limit, name, address } = req.query; // Lấy trang và kích thước trang từ query
+
+            // Chuyển đổi thành số
+            const pageNumber = parseInt(page, 10);
+            const limitNumber = parseInt(limit, 10);
+
+            // Tính toán số bản ghi bỏ qua
+            const skip = (pageNumber - 1) * limitNumber;
+
+            // Tạo query tìm kiếm
+            const query = {};
+            // Tạo điều kiện tìm kiếm
+            if (name || address) {
+                const searchKeywords = (name || '') + ' ' + (address || '');
+                const keywordsArray = searchKeywords.trim().split(/\s+/);
+
+                const searchConditions = keywordsArray.map(keyword => ({
+                    $or: [
+                        { name: { $regex: keyword, $options: 'i' } },
+                        { address: { $regex: keyword, $options: 'i' } },
+                    ]
+                }));
+
+                query.$or = searchConditions;
             }
+
+            let fetchAll = await PhongKham.find(query).skip(skip).limit(limitNumber);
+            
+            const totalPhongKham = await PhongKham.countDocuments(query); // Đếm tổng số chức vụ
+
+            const totalPages = Math.ceil(totalPhongKham / limitNumber); // Tính số trang
+
+            return res.status(200).json({
+                data: fetchAll,
+                totalPhongKham,
+                totalPages,
+                currentPage: pageNumber,
+                message: "Đã tìm ra tất cả chức vụ",
+            });  
 
         } catch(error) {
             console.error(error);
@@ -167,6 +192,7 @@ module.exports = {
             });
         }
     },
+
 
     createDoctor: async (req, res) => {
         try {
@@ -266,6 +292,7 @@ module.exports = {
         }
     },
 
+
     updateDoctor: async (req, res) => {
         try {
             let {_id, email, password, firstName, lastName, address, phoneNumber, 
@@ -336,6 +363,7 @@ module.exports = {
             });
         }
     },
+
 
     deleteDoctor: async (req, res) => {
         const _id = req.params.id
