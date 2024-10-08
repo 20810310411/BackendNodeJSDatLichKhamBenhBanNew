@@ -491,6 +491,32 @@ module.exports = {
             });
         }
     },
+    
+    updateChuyenKhoa: async (req, res) => {
+        try {
+            let {_id, name, description, image} = req.body
+            
+            let updateChuyenKhoa = await ChuyenKhoa.updateOne({_id: _id},{name, description, image})
+            
+            if(updateChuyenKhoa) {
+                return res.status(200).json({
+                    data: updateChuyenKhoa,
+                    message: "Chỉnh sửa chuyên khoa thành công"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "Chỉnh sửa chuyên khoa thất bại"
+                })
+            }
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi Chỉnh sửa chuyên khoa.",
+                error: error.message,
+            });
+        }
+    },
 
 
     deleteDoctor: async (req, res) => {

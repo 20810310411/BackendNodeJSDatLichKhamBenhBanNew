@@ -18,6 +18,9 @@ router.get("/fetch-all-chuyen-khoa", userDoctor.fetchAllChuyenKhoa );
 router.post("/create-chuyen-khoa", userDoctor.createChuyenKhoa );
 // route delete Chuyên khoa
 router.delete("/delete-chuyen-khoa/:id", userDoctor.deleteChuyenKhoa );
+// route update Chuyên khoa
+router.put("/update-chuyen-khoa", userDoctor.updateChuyenKhoa );
+
 
 // get all Chức vụ
 router.get("/fetch-all-chuc-vu", userDoctor.fetchAllChucVu );
