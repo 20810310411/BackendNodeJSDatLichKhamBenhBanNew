@@ -76,18 +76,42 @@ module.exports = {
 
     fetchAllChuyenKhoa: async (req, res) => {
         try {
-            let fetchAll = await ChuyenKhoa.find({})
-            
-            if(fetchAll) {
-                return res.status(200).json({
-                    data: fetchAll,
-                    message: "đã tìm ra tất cả ChuyenKhoa"
-                })
-            } else {
-                return res.status(404).json({                
-                    message: "tìm ra tất cả ChuyenKhoa thất bại"
-                })
+            const { page, limit, name } = req.query; 
+
+            // Chuyển đổi thành số
+            const pageNumber = parseInt(page, 10) || 1; // Mặc định là trang 1 nếu không có
+            const limitNumber = parseInt(limit, 10) || 10; // Mặc định là 10 bản ghi mỗi trang
+
+            // Tính toán số bản ghi bỏ qua
+            const skip = Math.max((pageNumber - 1) * limitNumber, 0);
+
+            // Tạo query tìm kiếm
+            const query = {};
+            // Tạo điều kiện tìm kiếm
+            if (name) {
+                const searchKeywords = (name || '')
+                const keywordsArray = searchKeywords.trim().split(/\s+/);
+
+                const searchConditions = keywordsArray.map(keyword => ({
+                    name: { $regex: keyword, $options: 'i' } // Tìm kiếm không phân biệt chữ hoa chữ thường
+                }));
+
+                query.$or = searchConditions;
             }
+
+            let fetchAll = await ChuyenKhoa.find(query).skip(skip).limit(limitNumber);
+            
+            const totalChuyenKhoa = await ChuyenKhoa.countDocuments(query); // Đếm tổng số chức vụ
+
+            const totalPages = Math.ceil(totalChuyenKhoa / limitNumber); // Tính số trang
+
+            return res.status(200).json({
+                data: fetchAll,
+                totalChuyenKhoa,
+                totalPages,
+                currentPage: pageNumber,
+                message: "Đã tìm ra tất cả chuyên khoa",
+            });             
 
         } catch(error) {
             console.error(error);
@@ -261,7 +285,7 @@ module.exports = {
                 });
             }
 
-            // tìm tên bác sĩ chính xác nếu trùng thì không được thêm
+            // tìm tên chức vụ bác sĩ chính xác nếu trùng thì không được thêm
             const existingChucVu = await ChucVu.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
             if (existingChucVu) {
                 return res.status(409).json({
@@ -322,6 +346,48 @@ module.exports = {
             console.error(error);
             return res.status(500).json({
                 message: "Có lỗi xảy ra khi thêm phòng khám.",
+                error: error.message,
+            });
+        }
+    },
+
+    createChuyenKhoa: async (req, res) => {
+        try {
+            let {name, description , image} = req.body       
+            console.log("anhr: ", image);
+                 
+            // tìm tên chuyên khoa bác sĩ chính xác nếu trùng thì không được thêm
+            const existingChuyenKhoa = await ChuyenKhoa.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+            if (existingChuyenKhoa) {
+                return res.status(409).json({
+                    message: "Tên chuyên khoa đã tồn tại. Vui lòng sử dụng chuyên khoa khác."
+                });
+            }  
+            
+            if (!name) {
+                return res.status(400).json({
+                    message: "Vui lòng cung cấp đầy đủ thông tin (tên chuyên khoa)"
+                });
+            }                   
+
+            let createChuyenKhoa = await ChuyenKhoa.create({name, description , image})
+            
+            if(createChuyenKhoa) {
+                console.log("thêm thành công chuyên khoa");
+                return res.status(200).json({
+                    data: createChuyenKhoa,
+                    message: "Thêm chuyên khoa thành công"
+                })
+            } else {
+                return res.status(404).json({                
+                    message: "Thêm chuyên khoa thất bại"
+                })
+            }
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi thêm chuyên khoa.",
                 error: error.message,
             });
         }
@@ -474,6 +540,23 @@ module.exports = {
         } else {
             return res.status(500).json({
                 message: "Bạn đã xoá phòng khám thất bại!"
+            })
+        }
+    },
+
+    deleteChuyenKhoa: async (req, res) => {
+        const _id = req.params.id
+
+        let xoaAD = await ChuyenKhoa.deleteOne({_id: _id})
+
+        if(xoaAD) {
+            return res.status(200).json({
+                data: xoaAD,
+                message: "Bạn đã xoá chuyên khoa thành công!"
+            })
+        } else {
+            return res.status(500).json({
+                message: "Bạn đã xoá chuyên khoa thất bại!"
             })
         }
     }

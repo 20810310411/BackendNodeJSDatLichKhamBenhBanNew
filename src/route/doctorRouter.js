@@ -14,7 +14,10 @@ router.delete("/delete-doctor/:id", userDoctor.deleteDoctor );
 
 // get all Chuyên khoa
 router.get("/fetch-all-chuyen-khoa", userDoctor.fetchAllChuyenKhoa );
-
+// route create Chuyên khoa
+router.post("/create-chuyen-khoa", userDoctor.createChuyenKhoa );
+// route delete Chuyên khoa
+router.delete("/delete-chuyen-khoa/:id", userDoctor.deleteChuyenKhoa );
 
 // get all Chức vụ
 router.get("/fetch-all-chuc-vu", userDoctor.fetchAllChucVu );
