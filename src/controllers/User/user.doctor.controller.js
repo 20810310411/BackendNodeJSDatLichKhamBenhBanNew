@@ -54,8 +54,15 @@ module.exports = {
             // Tìm tất cả bác sĩ với phân trang
             const fetchAll = await Doctor.find(query)
                 .populate("chucVuId chuyenKhoaId phongKhamId roleId")
+                .populate({
+                    path: 'thoiGianKham.thoiGianId', // Đường dẫn đến trường cần populate
+                    model: 'ThoiGianGio' // Tên model của trường cần populate
+                })
                 .skip(skip)
                 .limit(limitNumber);
+
+                console.log("fetchAll: ", fetchAll);
+                
 
             const totalDoctors = await Doctor.countDocuments(query); // Đếm tổng số bác sĩ
 
