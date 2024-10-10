@@ -10,7 +10,9 @@ const PhongKham = require('../../model/PhongKham');
 require('dotenv').config();
 // Secret key cho JWT
 const JWT_SECRET = process.env.JWT_SECRET; 
-const moment = require('moment');
+// const moment = require('moment');
+const moment = require('moment-timezone');
+
 
 
 module.exports = {
@@ -617,14 +619,28 @@ module.exports = {
             }
     
             // Chuyển đổi ngày từ request
-            const requestDate = moment(date).startOf('day');
+            // const requestDate = moment(date).startOf('day');
+            // const requestDate = moment(date).tz('Asia/Bangkok').startOf('day');
+            // console.log("requestDate: ", requestDate);
+            
     
+            // // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
+            // const existingTimeSlot = doctor.thoiGianKham.find(slot => {
+            //     const slotDate = moment(slot.date).tz('Asia/Bangkok').startOf('day'); // Đảm bảo so sánh đúng múi giờ
+            //     console.log("slotDate: ",slotDate);                
+            //     return slotDate.isSame(requestDate, 'day');
+            // });
+
+            // Chuyển đổi ngày từ request, đảm bảo đúng định dạng
+            const requestDate = moment(date, 'DD-MM-YYYY').startOf('day').format('YYYY-MM-DD');
+
+            if (!moment(requestDate, 'YYYY-MM-DD', true).isValid()) {
+                return res.status(400).json({ message: 'Ngày không hợp lệ!' });
+            }
+
             // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
-            const existingTimeSlot = doctor.thoiGianKham.find(slot => {
-                const slotDate = moment(slot.date).startOf('day');
-                return slotDate.isSame(requestDate);
-            });
-    
+            const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
+
             if (existingTimeSlot) {
                 // Lấy mảng các thoiGianId hiện tại
                 const existingTimeIds = existingTimeSlot.thoiGianId.map(id => id.toString());
@@ -639,7 +655,8 @@ module.exports = {
                 existingTimeSlot.thoiGianId = existingTimeSlot.thoiGianId.filter(timeId => time.includes(timeId.toString()));
             } else {
                 // Nếu chưa tồn tại, tạo một lịch khám mới
-                doctor.thoiGianKham.push({ date: requestDate.toDate(), thoiGianId: time });
+                // doctor.thoiGianKham.push({ date: requestDate.toDate(), thoiGianId: time });
+                doctor.thoiGianKham.push({ date: requestDate, thoiGianId: time });
             }
     
             // Lưu thay đổi

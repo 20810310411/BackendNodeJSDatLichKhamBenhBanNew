@@ -17,7 +17,7 @@ const Doctor_Schema = new mongoose.Schema({
         mota:   { type: String },           
         thoiGianKham: [
             {
-                date: { type: Date, required: true }, // Ngày khám
+                date: { type: String, required: true }, // Ngày khám
                 thoiGianId: [{ ref: "ThoiGianGio", type: mongoose.SchemaTypes.ObjectId }] // Mảng chứa các thoiGianId
             }
         ],      
