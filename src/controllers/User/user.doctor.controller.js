@@ -5,11 +5,13 @@ const ChuyenKhoa = require('../../model/ChuyenKhoa'); // Đường dẫn đến 
 const ChucVu = require('../../model/ChucVu'); // Đường dẫn đến model của bạn
 const Role = require('../../model/Role'); // Đường dẫn đến model của bạn
 const Doctor = require('../../model/Doctor');
-const ThoiGianThu = require('../../model/ThoiGianThu');
+const ThoiGianGio = require('../../model/ThoiGianGio');
 const PhongKham = require('../../model/PhongKham');
 require('dotenv').config();
 // Secret key cho JWT
 const JWT_SECRET = process.env.JWT_SECRET; 
+const moment = require('moment');
+
 
 module.exports = {
     fetchAllDoctor: async (req, res) => {
@@ -49,7 +51,7 @@ module.exports = {
 
             // Tìm tất cả bác sĩ với phân trang
             const fetchAll = await Doctor.find(query)
-                .populate("chucVuId chuyenKhoaId phongKhamId roleId thoiGianKhamId")
+                .populate("chucVuId chuyenKhoaId phongKhamId roleId")
                 .skip(skip)
                 .limit(limitNumber);
 
@@ -217,11 +219,26 @@ module.exports = {
         }
     },
 
+    fetchAllThoiGianGio: async (req, res) => {
+
+        const resGio = await ThoiGianGio.find({})
+        if(resGio){
+            return res.status(200).json({
+                data: resGio,                
+                message: "Đã tìm ra tất cả thoi gian",
+            });  
+        } else {
+            return res.status(500).json({
+                message: "Có lỗi xảy ra",
+            });
+        }
+    },
+
 
     createDoctor: async (req, res) => {
         try {
             let {email, password, firstName, lastName, address, phoneNumber, 
-                chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota, thoiGianKhamId} = req.body
+                chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota,  } = req.body
 
                 console.log("chucVuId: ",chucVuId);
                 console.log("chuyenKhoaId: ",chuyenKhoaId);
@@ -250,8 +267,7 @@ module.exports = {
                 chucVuId: chucVuId || [], 
                 gender, image, 
                 chuyenKhoaId: chuyenKhoaId || [], 
-                phongKhamId, roleId, mota, 
-                thoiGianKhamId
+                phongKhamId, roleId, mota,                 
             })
             
             if(createDoctor) {
@@ -397,7 +413,7 @@ module.exports = {
     updateDoctor: async (req, res) => {
         try {
             let {_id, email, password, firstName, lastName, address, phoneNumber, 
-                chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota, thoiGianKhamId} = req.body
+                chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota,} = req.body
 
                 console.log("id: ",_id);                     
 
@@ -411,8 +427,7 @@ module.exports = {
                 chucVuId: chucVuId || [], 
                 gender, image, 
                 chuyenKhoaId: chuyenKhoaId || [], 
-                phongKhamId, roleId, mota, 
-                thoiGianKhamId
+                phongKhamId, roleId, mota,                  
             })
             
             if(createDoctor) {
@@ -491,7 +506,7 @@ module.exports = {
             });
         }
     },
-    
+
     updateChuyenKhoa: async (req, res) => {
         try {
             let {_id, name, description, image} = req.body
@@ -585,5 +600,128 @@ module.exports = {
                 message: "Bạn đã xoá chuyên khoa thất bại!"
             })
         }
-    }
+    },
+
+    // them thoi gian kham benh cho doctor
+    addTimeKhamBenhDoctor: async (req, res) => {
+        const { date, time, _id } = req.body; // Lấy _id từ body
+        console.log("date: ", date);
+        console.log("time: ", time);
+        console.log("_id: ", _id);
+        
+        try {
+            // Tìm bác sĩ theo ID
+            const doctor = await Doctor.findById(_id);
+            if (!doctor) {
+                return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
+            }
+    
+            // Chuyển đổi ngày từ request
+            const requestDate = moment(date).startOf('day');
+    
+            // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
+            const existingTimeSlot = doctor.thoiGianKham.find(slot => {
+                const slotDate = moment(slot.date).startOf('day');
+                return slotDate.isSame(requestDate);
+            });
+    
+            if (existingTimeSlot) {
+                // Lấy mảng các thoiGianId hiện tại
+                const existingTimeIds = existingTimeSlot.thoiGianId.map(id => id.toString());
+    
+                // Lọc ra các thời gian mới không có trong existingTimeIds
+                const newTimeIds = time.filter(timeId => !existingTimeIds.includes(timeId));
+    
+                // Cập nhật thoiGianId với các ID mới
+                existingTimeSlot.thoiGianId = [...new Set([...existingTimeSlot.thoiGianId, ...newTimeIds])];
+    
+                // Xóa đi các thoiGianId không còn trong danh sách mới
+                existingTimeSlot.thoiGianId = existingTimeSlot.thoiGianId.filter(timeId => time.includes(timeId.toString()));
+            } else {
+                // Nếu chưa tồn tại, tạo một lịch khám mới
+                doctor.thoiGianKham.push({ date: requestDate.toDate(), thoiGianId: time });
+            }
+    
+            // Lưu thay đổi
+            await doctor.save();
+    
+            return res.status(200).json({ message: 'Cập nhật thời gian thành công!', data: doctor });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+    
+    addTimeKhamBenhDoctor1: async (req, res) => {
+        const { date, time, doctorId } = req.body; // Lấy doctorId từ body
+    
+        try {
+            // Tìm bác sĩ theo ID
+            const doctor = await Doctor.findById(doctorId);
+            if (!doctor) {
+                return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
+            }
+    
+            // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
+            const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date.toISOString() === new Date(date).toISOString());
+            
+            if (existingTimeSlot) {
+                // Lấy mảng các thoiGianId hiện tại
+                const existingTimeIds = existingTimeSlot.thoiGianId.map(id => id.toString());
+    
+                // Lọc ra các thời gian mới không có trong existingTimeIds
+                const newTimeIds = time.filter(timeId => !existingTimeIds.includes(timeId));
+    
+                // Cập nhật thoiGianId với các ID mới
+                existingTimeSlot.thoiGianId = [...new Set([...existingTimeSlot.thoiGianId, ...newTimeIds])];
+    
+                // Xóa đi các thoiGianId không còn trong danh sách mới
+                existingTimeSlot.thoiGianId = existingTimeSlot.thoiGianId.filter(timeId => time.includes(timeId.toString()));
+            } else {
+                // Nếu chưa tồn tại, tạo một lịch khám mới
+                doctor.thoiGianKham.push({ date: new Date(date), thoiGianId: time });
+            }
+    
+            // Lưu thay đổi
+            await doctor.save();
+    
+            return res.status(200).json({ message: 'Cập nhật thời gian thành công!', data: doctor });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },   
+    
+    // API để lấy thời gian khám của bác sĩ theo ngày
+    getTimeSlotsByDoctorAndDate: async (req, res) => {
+        const { doctorId, date } = req.query; // Lấy doctorId và date từ query
+
+        try {
+            // Tìm bác sĩ theo ID
+            const doctor = await Doctor.findById(doctorId);
+            if (!doctor) {
+                return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
+            }
+
+            // Chuyển đổi ngày từ query
+            const queryDate = moment.utc(date).startOf('day');
+
+            const timeSlot = doctor.thoiGianKham.find(slot => {
+                const slotDate = moment.utc(slot.date).startOf('day');
+                return slotDate.isSame(queryDate);
+            });
+                        
+
+            if (timeSlot) {
+                return res.status(200).json({ message: 'Lấy thời gian thành công!', timeSlots: timeSlot.thoiGianId });
+            } else {
+                return res.status(200).json({ message: 'Không có thời gian khám cho ngày này!', timeSlots: [] });
+            }
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
+    
 }

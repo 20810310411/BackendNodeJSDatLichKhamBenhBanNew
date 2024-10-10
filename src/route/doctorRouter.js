@@ -41,4 +41,11 @@ router.delete("/delete-phong-kham/:id", userDoctor.deletePhongKham );
 // route update Chức vụ
 router.put("/update-phong-kham", userDoctor.updatePhongKham );
 
+// fetch all thoi gian gio
+router.get("/fetch-all-time-gio", userDoctor.fetchAllThoiGianGio );
+// API để lấy thời gian khám của bác sĩ theo ngày
+router.get("/get-time-slots", userDoctor.getTimeSlotsByDoctorAndDate );
+// them thoi gian kham benh
+router.post("/add-time", userDoctor.addTimeKhamBenhDoctor );
+
 module.exports = router;

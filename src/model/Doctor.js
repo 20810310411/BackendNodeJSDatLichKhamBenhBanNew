@@ -15,7 +15,12 @@ const Doctor_Schema = new mongoose.Schema({
         phongKhamId: {ref: "PhongKham", type: mongoose.SchemaTypes.ObjectId},                  
         roleId: {ref: "Role", type: mongoose.SchemaTypes.ObjectId, default: defaultRoleId},  
         mota:   { type: String },           
-        thoiGianKhamId: [{ref: "ThoiGianThu", type: mongoose.SchemaTypes.ObjectId}],      
+        thoiGianKham: [
+            {
+                date: { type: Date, required: true }, // Ngày khám
+                thoiGianId: [{ ref: "ThoiGianGio", type: mongoose.SchemaTypes.ObjectId }] // Mảng chứa các thoiGianId
+            }
+        ],      
     },
     { 
         timestamps: true,   // createAt, updateAt
