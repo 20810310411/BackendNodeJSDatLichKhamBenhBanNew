@@ -645,6 +645,9 @@ module.exports = {
                 return res.status(400).json({ message: 'Ngày không hợp lệ!' });
             }
 
+            // Xóa các lịch trình cũ
+            doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+
             // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
             const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
 
