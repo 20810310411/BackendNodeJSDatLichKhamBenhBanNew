@@ -47,5 +47,8 @@ router.get("/fetch-all-time-gio", userDoctor.fetchAllThoiGianGio );
 router.get("/get-time-slots", userDoctor.getTimeSlotsByDoctorAndDate );
 // them thoi gian kham benh
 router.post("/add-time", userDoctor.addTimeKhamBenhDoctor );
+// xóa lịch trình cũ đi
+router.post('/delete-old-time-slots', userDoctor.deleteOldTimeSlots);
+
 
 module.exports = router;

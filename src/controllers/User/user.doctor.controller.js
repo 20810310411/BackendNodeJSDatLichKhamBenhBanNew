@@ -672,53 +672,49 @@ module.exports = {
             // Lưu thay đổi
             await doctor.save();
     
-            return res.status(200).json({ message: 'Cập nhật thời gian thành công!', data: doctor });
+            return res.status(200).json({ message: 'Cập nhật lịch trình khám bệnh thành công!', data: doctor });
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
         }
     },
     
-    addTimeKhamBenhDoctor1: async (req, res) => {
-        const { date, time, doctorId } = req.body; // Lấy doctorId từ body
-    
+    // xóa lịch trình quá cũ
+    deleteOldTimeSlots: async (req, res) => {
+        const { _id } = req.body; // Lấy _id từ body
+        console.log("_id: ", _id);
+        
         try {
             // Tìm bác sĩ theo ID
-            const doctor = await Doctor.findById(doctorId);
+            const doctor = await Doctor.findById(_id);
             if (!doctor) {
                 return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
             }
     
-            // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
-            const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date.toISOString() === new Date(date).toISOString());
-            
-            if (existingTimeSlot) {
-                // Lấy mảng các thoiGianId hiện tại
-                const existingTimeIds = existingTimeSlot.thoiGianId.map(id => id.toString());
-    
-                // Lọc ra các thời gian mới không có trong existingTimeIds
-                const newTimeIds = time.filter(timeId => !existingTimeIds.includes(timeId));
-    
-                // Cập nhật thoiGianId với các ID mới
-                existingTimeSlot.thoiGianId = [...new Set([...existingTimeSlot.thoiGianId, ...newTimeIds])];
-    
-                // Xóa đi các thoiGianId không còn trong danh sách mới
-                existingTimeSlot.thoiGianId = existingTimeSlot.thoiGianId.filter(timeId => time.includes(timeId.toString()));
-            } else {
-                // Nếu chưa tồn tại, tạo một lịch khám mới
-                doctor.thoiGianKham.push({ date: new Date(date), thoiGianId: time });
+            // Xóa các lịch trình cũ
+            // doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+
+            // Lọc các lịch trình đã qua
+            const oldSlots = doctor.thoiGianKham.filter(slot => moment(slot.date).isBefore(moment(), 'day'));
+
+            // Kiểm tra xem có lịch trình cũ không
+            if (oldSlots.length === 0) {
+                return res.status(400).json({ message: 'Không có lịch trình cũ để xóa!' });
             }
-    
+
+            // Xóa các lịch trình cũ
+            doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+        
             // Lưu thay đổi
             await doctor.save();
     
-            return res.status(200).json({ message: 'Cập nhật thời gian thành công!', data: doctor });
+            return res.status(200).json({ message: 'Đã xóa các lịch trình cũ thành công!', data: doctor });
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
         }
-    },   
-    
+    },
+        
     // API để lấy thời gian khám của bác sĩ theo ngày
     getTimeSlotsByDoctorAndDate: async (req, res) => {
         const { doctorId, date } = req.query; // Lấy doctorId và date từ query
