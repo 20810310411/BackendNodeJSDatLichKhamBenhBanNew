@@ -8,6 +8,8 @@ const Doctor_Schema = new mongoose.Schema({
         lastName: { type: String },        
         address: { type: String },        
         phoneNumber: { type: String },        
+        giaKhamVN: { type: String },        
+        giaKhamNuocNgoai: { type: String },        
         chucVuId: [{ref: "ChucVu", type: mongoose.SchemaTypes.ObjectId, default: defaultChucVuId}],    
         gender: { type: Boolean },        
         image: { type: String },         

@@ -246,11 +246,13 @@ module.exports = {
 
     createDoctor: async (req, res) => {
         try {
-            let {email, password, firstName, lastName, address, phoneNumber, 
+            let {email, password, firstName, lastName, address, phoneNumber, giaKhamVN, giaKhamNuocNgoai,
                 chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota,  } = req.body
 
                 console.log("chucVuId: ",chucVuId);
                 console.log("chuyenKhoaId: ",chuyenKhoaId);
+                console.log("giaKhamVN: ",giaKhamVN);
+                console.log("giaKhamNuocNgoai: ",giaKhamNuocNgoai);
                 
             
             if (!email || !password || !firstName || !lastName) {
@@ -259,7 +261,7 @@ module.exports = {
                 });
             }
 
-            const existingDoctor = await Doctor.findOne({ email });
+            const existingDoctor = await Doctor.findOne({ email: email });
             if (existingDoctor) {
                 return res.status(409).json({
                     message: "Email đã tồn tại. Vui lòng sử dụng email khác."
@@ -276,7 +278,7 @@ module.exports = {
                 chucVuId: chucVuId || [], 
                 gender, image, 
                 chuyenKhoaId: chuyenKhoaId || [], 
-                phongKhamId, roleId, mota,                 
+                phongKhamId, roleId, mota, giaKhamVN, giaKhamNuocNgoai,                
             })
             
             if(createDoctor) {
@@ -421,7 +423,7 @@ module.exports = {
 
     updateDoctor: async (req, res) => {
         try {
-            let {_id, email, password, firstName, lastName, address, phoneNumber, 
+            let {_id, email, password, firstName, lastName, address, phoneNumber, giaKhamVN, giaKhamNuocNgoai, 
                 chucVuId, gender, image, chuyenKhoaId, phongKhamId, roleId, mota,} = req.body
 
                 console.log("id: ",_id);                     
@@ -436,7 +438,8 @@ module.exports = {
                 chucVuId: chucVuId || [], 
                 gender, image, 
                 chuyenKhoaId: chuyenKhoaId || [], 
-                phongKhamId, roleId, mota,                  
+                phongKhamId, roleId, mota,  
+                giaKhamVN, giaKhamNuocNgoai,                
             })
             
             if(createDoctor) {
