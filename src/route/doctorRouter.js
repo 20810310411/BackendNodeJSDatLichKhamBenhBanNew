@@ -49,6 +49,8 @@ router.get("/get-time-slots", userDoctor.getTimeSlotsByDoctorAndDate );
 router.post("/add-time", userDoctor.addTimeKhamBenhDoctor );
 // xóa lịch trình cũ đi
 router.post('/delete-old-time-slots', userDoctor.deleteOldTimeSlots);
+// tìm ra doctor để hiển thị chi tiết
+router.get('/view-doctor', userDoctor.fetchDoctorById);
 
 
 module.exports = router;

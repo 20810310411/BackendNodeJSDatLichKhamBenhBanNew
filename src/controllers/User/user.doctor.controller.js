@@ -718,7 +718,8 @@ module.exports = {
     // API để lấy thời gian khám của bác sĩ theo ngày
     getTimeSlotsByDoctorAndDate: async (req, res) => {
         const { doctorId, date } = req.query; // Lấy doctorId và date từ query
-
+        console.log("doctorId, date: ", doctorId, date);
+        
         try {
             // Tìm bác sĩ theo ID
             const doctor = await Doctor.findById(doctorId);
@@ -732,11 +733,24 @@ module.exports = {
             const timeSlot = doctor.thoiGianKham.find(slot => {
                 const slotDate = moment.utc(slot.date).startOf('day');
                 return slotDate.isSame(queryDate);
-            });
-                        
+            });                                
 
             if (timeSlot) {
-                return res.status(200).json({ message: 'Lấy thời gian thành công!', timeSlots: timeSlot.thoiGianId });
+                // Lấy danh sách thoiGianId
+                const timeGioIds = timeSlot.thoiGianId;
+
+                // Tìm các tenGio tương ứng với thoiGianId
+                const timeGioList = await ThoiGianGio.find({ _id: { $in: timeGioIds } });
+
+                // Tạo mảng các tenGio
+                const tenGioArray = timeGioList.map(item => item.tenGio);
+                console.log("tenGioArray: ", tenGioArray);
+                
+
+                return res.status(200).json({ message: 'Lấy thời gian thành công!', 
+                    timeSlots: timeSlot.thoiGianId, 
+                    tenGioArray 
+                });
             } else {
                 return res.status(200).json({ message: 'Không có thời gian khám cho ngày này!', timeSlots: [] });
             }
@@ -746,5 +760,28 @@ module.exports = {
         }
     },
 
-    
+    // tìm ra doctor để hiển thị chi tiết
+    fetchDoctorById: async (req, res) => {
+
+        let id = req.query.id
+        console.log("id doctor: ", id);
+        try {
+            const doctor = await Doctor.findById(id)
+                .populate("chucVuId chuyenKhoaId phongKhamId roleId")
+                .populate({
+                    path: 'thoiGianKham.thoiGianId', // Đường dẫn đến trường cần populate
+                    model: 'ThoiGianGio' // Tên model của trường cần populate
+                })
+            if (!doctor) {
+                return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
+            }
+            return res.status(200).json({
+                message: "Đã tìm thấy bác sĩ",
+                data: doctor
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    }
 }
