@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const ThoiGianGio = require('./ThoiGianGio');
 const defaultRoleId = new mongoose.Types.ObjectId("66df1d6fdcb551b86e4f703b"); 
 const defaultChucVuId = new mongoose.Types.ObjectId("66f7b888ce6c5cdcb1cab057"); 
 const Doctor_Schema = new mongoose.Schema({   
@@ -29,25 +30,40 @@ const Doctor_Schema = new mongoose.Schema({
     }
 );
 
-// // Hàm để xóa các ngày quá hạn
-// Doctor_Schema.methods.removeExpiredDates = function() {
-//     const today = new Date();
-    
-//     // Lặp qua mảng thoiGianKham và xóa những ngày quá hạn
-//     this.thoiGianKham = this.thoiGianKham.filter(thoiGian => {
-//         const dateParts = thoiGian.date.split('-');
-//         const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // Chuyển đổi sang Date object
-//         console.log("Checking Date:", date);
-//         return date >= today; // Giữ lại những ngày chưa qua
-//     });
-//     console.log("Updated thoiGianKham:", this.thoiGianKham);
 
-// };
+// Hàm để xóa các giờ khám đã qua
+Doctor_Schema.methods.removeExpiredTimeSlots = async function() {
+    const currentDate = new Date();
+    const currentHour = currentDate.getHours();
+    const currentMinute = currentDate.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-// // Trước khi lưu, gọi hàm removeExpiredDates
-// Doctor_Schema.pre('save', function(next) {
-//     this.removeExpiredDates();
-//     next();
-// });
+    for (const slot of this.thoiGianKham) {
+        const thoiGianGioList = await ThoiGianGio.find({ _id: { $in: slot.thoiGianId } });
+
+        // Lọc các giờ khám không còn hợp lệ
+        slot.thoiGianId = slot.thoiGianId.filter(thoiGianId => {
+            const thoiGianGio = thoiGianGioList.find(gio => gio._id.equals(thoiGianId));
+            if (thoiGianGio) {
+                const [start, end] = thoiGianGio.tenGio.split(' - ').map(t => {
+                    const [hour, minute] = t.split(':').map(Number);
+                    return hour * 60 + minute; // Chuyển đổi sang phút
+                });
+                return end > currentTimeInMinutes; // Giữ lại những giờ chưa qua
+            }
+            return false;
+        });
+    }
+
+    // Lọc những ngày không còn giờ khám nào
+    this.thoiGianKham = this.thoiGianKham.filter(slot => slot.thoiGianId.length > 0);
+};
+
+// Trước khi lưu, gọi hàm removeExpiredTimeSlots
+Doctor_Schema.pre('save', async function(next) {
+    await this.removeExpiredTimeSlots();
+    next();
+});
+
 
 module.exports = mongoose.model("Doctor", Doctor_Schema);
