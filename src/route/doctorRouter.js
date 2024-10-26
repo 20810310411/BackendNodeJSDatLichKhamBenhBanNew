@@ -53,6 +53,7 @@ router.post('/delete-old-time-slots', userDoctor.deleteOldTimeSlots);
 router.get('/view-doctor', userDoctor.fetchDoctorById);
 // hiển thị info doctor kèm theo thgian khám cho page đặt lịch khám
 router.get('/page-dat-lich-kham', userDoctor.fetchDoctorByNgayGio);
-
+// dat lich kham
+router.post("/dat-lich-kham", userDoctor.datLichKham );
 
 module.exports = router;

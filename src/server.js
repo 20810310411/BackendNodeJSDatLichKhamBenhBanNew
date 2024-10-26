@@ -76,7 +76,7 @@ setInterval(async () => {
   } catch (error) {
       console.error('Có lỗi xảy ra khi xóa lịch trình cũ:', error);
   }
-}, 1000 * 60 ); // 1 phút
+}, 1000 * 60 * 10); // 10 phút
 
 
 app.listen(port, () => {
