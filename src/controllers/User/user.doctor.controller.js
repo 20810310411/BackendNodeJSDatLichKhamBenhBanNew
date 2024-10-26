@@ -752,7 +752,8 @@ module.exports = {
 
                 return res.status(200).json({ message: 'Lấy thời gian thành công!', 
                     timeSlots: timeSlot.thoiGianId, 
-                    tenGioArray 
+                    tenGioArray, 
+                    timeGioList
                 });
             } else {
                 return res.status(200).json({ message: 'Không có thời gian khám cho ngày này!', timeSlots: [] });
@@ -782,6 +783,35 @@ module.exports = {
                 message: "Đã tìm thấy bác sĩ",
                 data: doctor
             });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
+    // tìm tt bác sĩ khi bệnh nhân đặt lịch (hiển thị lên page đặt lịch)
+    fetchDoctorByNgayGio: async (req, res) => {
+        try {
+            const { id, idGioKhamBenh, ngayKham } = req.query; // Lấy doctorId và date từ query
+            console.log("id, idGioKhamBenh, ngayKham: ", id, idGioKhamBenh, ngayKham);
+
+            // Tìm bác sĩ theo ID
+            const doctor = await Doctor.findById(id).populate("chucVuId chuyenKhoaId phongKhamId roleId")
+            if (!doctor) {
+                return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
+            }
+
+            const timeGio = await ThoiGianGio.findById(idGioKhamBenh);
+            if (!timeGio) { 
+                return res.status(404).json({ message: 'tên giờ không tồn tại!' });
+            }
+
+            return res.status(200).json({ message: 'Da tim thay!', 
+                infoDoctor: doctor, 
+                tenGio: timeGio,
+                ngayKham: ngayKham
+            });
+
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra!', error });

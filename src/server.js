@@ -9,6 +9,9 @@ const connectDB = require('./config/connectDB');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const Doctor = require('./model/Doctor');
+const cron = require('node-cron');
+const moment = require('moment');
 
 require("dotenv").config();
 
@@ -41,6 +44,41 @@ app.use("/api/users", userRouter);
 app.use("/api/doctor", doctorRouter);
 // Sử dụng uploadRouter
 app.use("/api/doctor", uploadRouter); // Đặt đường dẫn cho upload
+
+
+// Lập lịch để chạy mỗi ngày vào lúc 00:00
+// cron.schedule('0 0 * * *', async () => {
+//   try {
+//       const doctors = await Doctor.find();
+
+//       for (const doctor of doctors) {
+//           // Lọc các lịch trình đã qua
+//           doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+//           // Lưu thay đổi
+//           await doctor.save();
+//       }
+//       console.log('Đã tự động xóa các lịch trình cũ thành công!');
+//   } catch (error) {
+//       console.error('Có lỗi xảy ra khi xóa lịch trình cũ:', error);
+//   }
+// });
+
+// Hoặc sử dụng setInterval để kiểm tra thường xuyên
+setInterval(async () => {
+  try {
+      const doctors = await Doctor.find();
+
+      for (const doctor of doctors) {
+          doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+          await doctor.save();
+      }
+      console.log('Đã tự động xóa các lịch trình cũ thành công!');
+  } catch (error) {
+      console.error('Có lỗi xảy ra khi xóa lịch trình cũ:', error);
+  }
+}, 1000 * 60 * 60); // 60 phút
+
+
 
 app.listen(port, () => {
     console.log("backend nodejs is running on the port:", port, `\n http://localhost:${port}`);

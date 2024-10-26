@@ -51,6 +51,8 @@ router.post("/add-time", userDoctor.addTimeKhamBenhDoctor );
 router.post('/delete-old-time-slots', userDoctor.deleteOldTimeSlots);
 // tìm ra doctor để hiển thị chi tiết
 router.get('/view-doctor', userDoctor.fetchDoctorById);
+// hiển thị info doctor kèm theo thgian khám cho page đặt lịch khám
+router.get('/page-dat-lich-kham', userDoctor.fetchDoctorByNgayGio);
 
 
 module.exports = router;
