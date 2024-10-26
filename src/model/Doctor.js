@@ -29,25 +29,25 @@ const Doctor_Schema = new mongoose.Schema({
     }
 );
 
-// Hàm để xóa các ngày quá hạn
-Doctor_Schema.methods.removeExpiredDates = function() {
-    const today = new Date();
+// // Hàm để xóa các ngày quá hạn
+// Doctor_Schema.methods.removeExpiredDates = function() {
+//     const today = new Date();
     
-    // Lặp qua mảng thoiGianKham và xóa những ngày quá hạn
-    this.thoiGianKham = this.thoiGianKham.filter(thoiGian => {
-        const dateParts = thoiGian.date.split('-');
-        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // Chuyển đổi sang Date object
-        console.log("Checking Date:", date);
-        return date >= today; // Giữ lại những ngày chưa qua
-    });
-    console.log("Updated thoiGianKham:", this.thoiGianKham);
+//     // Lặp qua mảng thoiGianKham và xóa những ngày quá hạn
+//     this.thoiGianKham = this.thoiGianKham.filter(thoiGian => {
+//         const dateParts = thoiGian.date.split('-');
+//         const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // Chuyển đổi sang Date object
+//         console.log("Checking Date:", date);
+//         return date >= today; // Giữ lại những ngày chưa qua
+//     });
+//     console.log("Updated thoiGianKham:", this.thoiGianKham);
 
-};
+// };
 
-// Trước khi lưu, gọi hàm removeExpiredDates
-Doctor_Schema.pre('save', function(next) {
-    this.removeExpiredDates();
-    next();
-});
+// // Trước khi lưu, gọi hàm removeExpiredDates
+// Doctor_Schema.pre('save', function(next) {
+//     this.removeExpiredDates();
+//     next();
+// });
 
 module.exports = mongoose.model("Doctor", Doctor_Schema);
