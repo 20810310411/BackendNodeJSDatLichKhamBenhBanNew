@@ -55,5 +55,7 @@ router.get('/view-doctor', userDoctor.fetchDoctorById);
 router.get('/page-dat-lich-kham', userDoctor.fetchDoctorByNgayGio);
 // dat lich kham
 router.post("/dat-lich-kham", userDoctor.datLichKham );
+// get lich hen
+router.get("/lich-hen", userDoctor.getLichHen );
 
 module.exports = router;

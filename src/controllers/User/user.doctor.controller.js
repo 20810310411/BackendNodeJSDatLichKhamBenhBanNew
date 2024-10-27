@@ -861,7 +861,7 @@ module.exports = {
 
                 // Check if there's an overlap
                 if (newStartTime < existingEndTime && newEndTime > existingStartTime) {
-                    return res.status(400).json({ message: 'Lịch khám đã bị trùng. Vui lòng chọn thời gian khác.' });
+                    return res.status(400).json({ message: 'Có vẻ lịch khám này đã có bệnh nhân đăng ký rồi. Vui lòng chọn thời gian khác.' });
                 }
             }
 
@@ -880,6 +880,39 @@ module.exports = {
                 data: datlich
             });
 
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
+    getLichHen: async (req, res) => {
+        try {
+            let idKH = req.query.idKhachHang
+
+            const findLichHen = await KhamBenh.find({_idTaiKhoan: idKH})
+            .populate("_idDoctor _idTaiKhoan")
+            .populate({
+                path: '_idDoctor',
+                populate: [
+                    { path: 'chucVuId' }, 
+                    { path: 'chuyenKhoaId' }, 
+                    { path: 'phongKhamId' }, 
+                ]
+            })
+            .populate({
+                path: '_idTaiKhoan',
+                model: 'BenhNhan' 
+            })
+
+            if (!findLichHen) { 
+                return res.status(404).json({ message: 'Tìm lịch hẹn thất bại!' });
+            }
+
+            return res.status(200).json({ message: 'Tìm lịch hẹn thành công!', 
+                data: findLichHen
+            });
 
         } catch (error) {
             console.error(error);
