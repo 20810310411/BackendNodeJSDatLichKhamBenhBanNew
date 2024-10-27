@@ -66,4 +66,5 @@ Doctor_Schema.pre('save', async function(next) {
 });
 
 
+
 module.exports = mongoose.model("Doctor", Doctor_Schema);

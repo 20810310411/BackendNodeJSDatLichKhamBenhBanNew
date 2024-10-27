@@ -14,6 +14,8 @@ router.delete("/delete-doctor/:id", userDoctor.deleteDoctor );
 
 // get all Chuyên khoa
 router.get("/fetch-all-chuyen-khoa", userDoctor.fetchAllChuyenKhoa );
+// get by id
+router.get("/fetch-chuyen-khoa-by-id", userDoctor.fetchChuyenKhoaByID );
 // route create Chuyên khoa
 router.post("/create-chuyen-khoa", userDoctor.createChuyenKhoa );
 // route delete Chuyên khoa
@@ -57,5 +59,9 @@ router.get('/page-dat-lich-kham', userDoctor.fetchDoctorByNgayGio);
 router.post("/dat-lich-kham", userDoctor.datLichKham );
 // get lich hen
 router.get("/lich-hen", userDoctor.getLichHen );
+
+
+// tim bac si thong qua id chuyen khoa
+router.get("/doctor-chuyen-khoa", userDoctor.fetchDoctorByChuyenKhoa );
 
 module.exports = router;

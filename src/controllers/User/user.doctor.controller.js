@@ -617,6 +617,50 @@ module.exports = {
 
     // them thoi gian kham benh cho doctor
     addTimeKhamBenhDoctor: async (req, res) => {
+        const { date, time, _id } = req.body;
+        console.log("date: ", date);
+        console.log("time: ", time);
+        console.log("_id: ", _id);
+        
+        try {
+            const doctor = await Doctor.findById(_id);
+            if (!doctor) {
+                return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
+            }
+    
+            // Convert date from request, ensuring the correct format
+            const requestDate = moment(date, 'DD-MM-YYYY').startOf('day').format('YYYY-MM-DD');
+    
+            if (!moment(requestDate, 'YYYY-MM-DD', true).isValid()) {
+                return res.status(400).json({ message: 'Ngày không hợp lệ!' });
+            }
+    
+            // Check if there's already a time slot for the given date
+            const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
+    
+            if (existingTimeSlot) {
+                // Update existing time slot
+                const existingTimeIds = existingTimeSlot.thoiGianId.map(id => id.toString());
+                const newTimeIds = time.filter(timeId => !existingTimeIds.includes(timeId));
+                existingTimeSlot.thoiGianId = [...new Set([...existingTimeSlot.thoiGianId, ...newTimeIds])];
+            } else {
+                // Create a new time slot if none exists
+                doctor.thoiGianKham.push({ date: requestDate, thoiGianId: time });
+            }
+    
+            // Call the removeExpiredTimeSlots method to clean up any expired time slots
+            await doctor.removeExpiredTimeSlots();
+    
+            // Save changes
+            await doctor.save();
+            return res.status(200).json({ message: 'Cập nhật lịch trình khám bệnh thành công!', data: doctor });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+    
+    addTimeKhamBenhDoctor1: async (req, res) => {
         const { date, time, _id } = req.body; // Lấy _id từ body
         console.log("date: ", date);
         console.log("time: ", time);
@@ -650,7 +694,7 @@ module.exports = {
             }
 
             // Xóa các lịch trình cũ
-            doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+            // doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
 
             // Kiểm tra xem thời gian đã tồn tại cho ngày này chưa
             const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
@@ -918,5 +962,52 @@ module.exports = {
             console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
         }
+    },
+
+    // tìm ra chuyenKhoa để hiển thị chi tiết
+    fetchChuyenKhoaByID: async (req, res) => {
+
+        let id = req.query.id
+        console.log("id chuyenKhoa: ", id);
+        try {
+            const chuyenKhoa = await ChuyenKhoa.findById(id)
+                
+            if (!chuyenKhoa) {
+                return res.status(404).json({ message: 'Chuyên khoa không tồn tại!' });
+            }
+            return res.status(200).json({
+                message: "Đã tìm thấy Chuyên khoa",
+                data: chuyenKhoa
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
+    fetchDoctorByChuyenKhoa: async (req, res) => {
+        let id = req.query.idChuyenKhoa
+        console.log("id chuyenKhoa: ", id);
+
+        try {
+            const doctor = await Doctor.find({chuyenKhoaId: id})
+                .populate("chucVuId chuyenKhoaId phongKhamId roleId")
+                .populate({
+                    path: 'thoiGianKham.thoiGianId', // Đường dẫn đến trường cần populate
+                    model: 'ThoiGianGio' // Tên model của trường cần populate
+                })
+                
+            if (!doctor) {
+                return res.status(404).json({ message: 'Doctor không tồn tại!' });
+            }
+            return res.status(200).json({
+                message: "Đã tìm thấy Doctor",
+                data: doctor
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+
     }
 }
