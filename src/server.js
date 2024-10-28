@@ -22,12 +22,29 @@ const hostname = process.env.HOST_NAME;
 connectDB();
 
 // Cài đặt CORS
-app.use(
-    cors({
-      origin: "http://localhost:3000", // Thay bằng domain của frontend
-      credentials: true,
-    })
-);
+// app.use(
+//     cors({
+//       origin: "http://localhost:3000", // Thay bằng domain của frontend
+//       credentials: true,
+//     })
+// );
+const allowedOrigins = [
+    'http://localhost:3000', // Local development
+    'https://frontend-react-kham-benh.vercel.app' // Production
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, origin);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+}));
+
 
 // Config bodyParser
 app.use(bodyParser.json());
