@@ -29,9 +29,9 @@ connectDB();
 //     })
 // );
 const allowedOrigins = [
+    'https://khambenh.webkhactu.top/',
     'http://localhost:3000', // Local development
-    // 'https://frontend-react-kham-benh.vercel.app' // Production
-    'https://khambenh.webkhactu.top/'
+    'https://frontend-react-kham-benh.vercel.app', // Production
 ];
 
 app.use(cors({
