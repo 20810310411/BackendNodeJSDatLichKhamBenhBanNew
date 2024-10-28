@@ -45,6 +45,8 @@ app.use(cors({
     },
     credentials: true,
 }));
+app.options('*', cors()); // Enable preflight requests for all routes
+
 
 
 // Config bodyParser
