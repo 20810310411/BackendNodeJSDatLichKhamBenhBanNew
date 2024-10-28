@@ -30,7 +30,8 @@ connectDB();
 // );
 const allowedOrigins = [
     'http://localhost:3000', // Local development
-    'https://frontend-react-kham-benh.vercel.app' // Production
+    // 'https://frontend-react-kham-benh.vercel.app' // Production
+    'https://khambenh.webkhactu.top/'
 ];
 
 app.use(cors({
