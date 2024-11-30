@@ -17,5 +17,9 @@ router.post("/register-benh-nhan", loginBenhNhan.registerBenhNhan);
 // route logout  benh nhan
 router.post("/logout-benh-nhan", loginBenhNhan.logoutBenhNhan );
 
+router.get("/get-one-kh", loginBenhNhan.getOneAccKH );
+
+router.put("/doi-thong-tin", loginBenhNhan.doiThongTinKH)
+
 
 module.exports = router;

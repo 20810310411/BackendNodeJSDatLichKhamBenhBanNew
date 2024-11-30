@@ -100,6 +100,62 @@ module.exports = {
         } catch (error) {
             return res.status(500).json({ success: false , message: error });
         }
+    },
+
+    getOneAccKH: async (req, res) => {
+        try {
+            const id = req.query.id; 
+            console.log("id: ", id);
+                            
+            let accKH = await BenhNhan.find({_id: id}).populate("roleId")
+                       
+            if(accKH) {
+                return res.status(200).json({
+                    message: "Đã tìm ra acc benh nhan",
+                    errCode: 0,
+                    data: accKH,                    
+                })
+            } else {
+                return res.status(500).json({
+                    message: "Tìm thất bại!",
+                    errCode: -1,
+                })
+            }
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra.",
+                error: error.message,
+            });
+        }        
+    },  
+
+    doiThongTinKH: async (req, res) => {
+        const {_idAcc, email, lastName, firstName, address, phone, password, passwordMoi, image} = req.body 
+
+        console.log("image: ", image);
+        
+        
+        // một chuỗi đã được mã hóa có thể lưu vào cơ sở dữ liệu.
+        const hashedPassword = await bcrypt.hash(passwordMoi, 10);
+
+        const updateResult = await BenhNhan.updateOne(
+            { _id: _idAcc }, 
+            { email, lastName, firstName, address, phone, password: hashedPassword, image }
+        );
+        
+        if(updateResult) {
+            // Trả về kết quả thành công
+            return res.status(200).json({
+                message: "Cập nhật tài khoản khách hàng thành công!",
+                data: updateResult
+            });
+        } else {
+            return res.status(404).json({                
+                message: "Chỉnh sửa thất bại"
+            })
+        }  
     }
 
 }

@@ -745,6 +745,9 @@ module.exports = {
             // Lọc các lịch trình đã qua
             const oldSlots = doctor.thoiGianKham.filter(slot => moment(slot.date).isBefore(moment(), 'day'));
 
+            console.log("oldSlots: ", oldSlots);
+            
+
             // Kiểm tra xem có lịch trình cũ không
             if (oldSlots.length === 0) {
                 return res.status(400).json({ message: 'Không có lịch trình cũ để xóa!' });
