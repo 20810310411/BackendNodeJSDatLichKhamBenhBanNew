@@ -64,4 +64,7 @@ router.get("/lich-hen", userDoctor.getLichHen );
 // tim bac si thong qua id chuyen khoa
 router.get("/doctor-chuyen-khoa", userDoctor.fetchDoctorByChuyenKhoa );
 
+router.post("/huy-order", userDoctor.handleHuyOrder );
+
+
 module.exports = router;

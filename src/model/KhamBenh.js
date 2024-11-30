@@ -13,7 +13,17 @@ const KhamBenh_Schema = new mongoose.Schema({
         hinhThucTT: { type: Boolean },        
         tenGioKham: { type: String },        
         ngayKhamBenh: { type: String },        
-        giaKham: { type: String },        
+        giaKham: { type: String },  
+        trangThai: { 
+            type: String, 
+            enum: ["Đã xác nhận", "Chưa xác nhận"], 
+            default: "Đã xác nhận" 
+        },   
+        trangThaiHuyDon: { 
+            type: String, 
+            enum: ["Đã Hủy", "Không Hủy"], 
+            default: "Không Hủy" 
+        },   
     },
     { 
         timestamps: true,   // createAt, updateAt

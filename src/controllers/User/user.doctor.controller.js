@@ -1012,5 +1012,42 @@ module.exports = {
             return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
         }
 
+    },
+
+    handleHuyOrder: async (req, res) => {
+        try {
+            let id = req.query.idHuy
+
+            let checkOrder = await KhamBenh.findById({_id: id})
+
+            if (!checkOrder) {
+                return res.status(404).json({
+                    message: "Lịch hẹn không tồn tại!",
+                    errCode: -1,
+                });
+            }
+
+            let updateOrder = await KhamBenh.updateOne(
+                { _id: id },
+                { trangThai: 'Đã xác nhận', trangThaiHuyDon: 'Đã Hủy' }
+            )
+            if(updateOrder){
+                return res.status(200).json({
+                    message: "Hủy Lịch hẹn thành công!",
+                    errCode: 0,
+                    data: updateOrder
+                })
+            } else {
+                return res.status(500).json({
+                    message: "Hủy Lịch hẹn thất bại!",                
+                    errCode: -1,
+                })
+            }          
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Đã xảy ra lỗi!',
+                error: error.message,
+            });
+        }
     }
 }
