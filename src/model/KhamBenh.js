@@ -16,8 +16,8 @@ const KhamBenh_Schema = new mongoose.Schema({
         giaKham: { type: String },  
         trangThai: { 
             type: String, 
-            enum: ["Đã xác nhận", "Chưa xác nhận"], 
-            default: "Đã xác nhận" 
+            enum: ["Đã đặt lịch", "Chưa đặt lịch"], 
+            default: "Đã đặt lịch" 
         },   
         trangThaiHuyDon: { 
             type: String, 

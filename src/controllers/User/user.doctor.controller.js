@@ -1029,7 +1029,7 @@ module.exports = {
 
             let updateOrder = await KhamBenh.updateOne(
                 { _id: id },
-                { trangThai: 'Đã xác nhận', trangThaiHuyDon: 'Đã Hủy' }
+                { trangThai: 'Đã đặt lịch', trangThaiHuyDon: 'Đã Hủy' }
             )
             if(updateOrder){
                 return res.status(200).json({
@@ -1049,5 +1049,73 @@ module.exports = {
                 error: error.message,
             });
         }
-    }
+    },
+
+    findAllLichHen: async (req, res) => {
+        try {
+
+            const { page, limit, sort, order, lichHen } = req.query; 
+    console.log("lichhen: ", lichHen);
+    
+            // Chuyển đổi thành số
+            const pageNumber = parseInt(page, 10);
+            const limitNumber = parseInt(limit, 10);
+    
+            // Tính toán số bản ghi bỏ qua
+            const skip = (pageNumber - 1) * limitNumber;
+
+            const query = {};
+            // Tạo điều kiện tìm kiếm
+            if (lichHen) {
+                const searchKeyword = lichHen.trim() // Lấy 6 ký tự cuối của lichHen
+                query._id = { $regex: `${searchKeyword}`, $options: 'i' }; // So sánh 6 ký tự đầu của _id
+            }
+
+            // tang/giam
+            let sortOrder = 1; // tang dn
+            if (order === 'desc') {
+                sortOrder = -1; 
+            }
+
+            let findOrder = await KhamBenh.find(query)
+                .skip(skip)
+                .limit(limitNumber)
+                .populate('_idDoctor _idTaiKhoan') 
+                .populate({
+                    path: '_idDoctor', // Populate thông tin bác sĩ
+                    populate: {
+                        path: 'phongKhamId', // Populate phongKhamId từ Doctor
+                        model: 'PhongKham' // Model của phongKhamId là PhongKham
+                    }
+                })
+                .sort({ [sort]: sortOrder })
+                
+            // Tính tổng 
+            let totalOrder = await KhamBenh.countDocuments(query);
+            let totalPage = Math.ceil(totalOrder / limitNumber)
+
+            if(findOrder){
+                return res.status(200).json({
+                    message: "Tìm Order thành công!",
+                    errCode: 0,
+                    data: {
+                        findOrder: findOrder,
+                        totalOrder: totalOrder,  // Tổng số Order cho sản phẩm này
+                        totalPages: totalPage,  // Tổng số trang
+                        currentPage: pageNumber,  // Trang hiện tại
+                    }
+                })
+            } else {
+                return res.status(500).json({
+                    message: "Tìm Order thất bại!",                
+                    errCode: -1,
+                })
+            } 
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Đã xảy ra lỗi!',
+                error: error.message,
+            });
+        }
+    },
 }

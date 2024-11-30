@@ -65,6 +65,7 @@ router.get("/lich-hen", userDoctor.getLichHen );
 router.get("/doctor-chuyen-khoa", userDoctor.fetchDoctorByChuyenKhoa );
 
 router.post("/huy-order", userDoctor.handleHuyOrder );
+router.get("/find-all-order", userDoctor.findAllLichHen)
 
 
 module.exports = router;
