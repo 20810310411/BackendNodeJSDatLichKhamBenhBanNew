@@ -2,6 +2,7 @@ const express = require("express");
 import loginAdmin from '../controllers/Login/login.admin.controller';
 import loginDoctor from '../controllers/Login/login.doctor.controller';
 import loginBenhNhan from '../controllers/Login/login.user.controller';
+import { quenMatKhauDoctor } from '../controllers/Login/quen.password.controller';
 const router = express.Router();
 
 // route đăng nhập admin
@@ -27,5 +28,8 @@ router.put("/doi-mat-khau-doctor", loginDoctor.doiThongTinDoctor)
 // route đăng nhập admin
 router.post("/login-doctor", loginDoctor.loginDoctor );
 router.post("/logout-doctor", loginDoctor.logoutDoctor );
+
+router.post("/quen-mat-khau-doctor", quenMatKhauDoctor)
+
 
 module.exports = router;
