@@ -4,6 +4,8 @@ const router = express.Router();
 
 // get all doctor
 router.get("/fetch-all-doctor", userDoctor.fetchAllDoctor );
+// find doctor by id
+router.get("/fetch-doctor-by-id", userDoctor.fetchAllDoctorById );
 // route create doctor
 router.post("/create-doctor", userDoctor.createDoctor );
 // route update doctor
@@ -66,6 +68,7 @@ router.get("/doctor-chuyen-khoa", userDoctor.fetchDoctorByChuyenKhoa );
 
 router.post("/huy-order", userDoctor.handleHuyOrder );
 router.get("/find-all-order", userDoctor.findAllLichHen)
+router.get("/find-all-order-by-doctor", userDoctor.findAllLichHenByDoctor)
 
 
 module.exports = router;

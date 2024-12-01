@@ -1055,7 +1055,6 @@ module.exports = {
         try {
 
             const { page, limit, sort, order, lichHen } = req.query; 
-    console.log("lichhen: ", lichHen);
     
             // Chuyển đổi thành số
             const pageNumber = parseInt(page, 10);
@@ -1114,6 +1113,91 @@ module.exports = {
         } catch (error) {
             return res.status(500).json({
                 message: 'Đã xảy ra lỗi!',
+                error: error.message,
+            });
+        }
+    },
+
+    findAllLichHenByDoctor: async (req, res) => {
+        try {
+
+            const { page, limit, sort, order, idDoctor } = req.query; 
+    
+            // Chuyển đổi thành số
+            const pageNumber = parseInt(page, 10);
+            const limitNumber = parseInt(limit, 10);
+    
+            // Tính toán số bản ghi bỏ qua
+            const skip = (pageNumber - 1) * limitNumber;           
+
+            // tang/giam
+            let sortOrder = 1; // tang dn
+            if (order === 'desc') {
+                sortOrder = -1; 
+            }
+
+            let findOrder = await KhamBenh.find({_idDoctor: idDoctor})
+                .skip(skip)
+                .limit(limitNumber)
+                .populate('_idDoctor _idTaiKhoan') 
+                .populate({
+                    path: '_idDoctor', // Populate thông tin bác sĩ
+                    populate: {
+                        path: 'phongKhamId', // Populate phongKhamId từ Doctor
+                        model: 'PhongKham' // Model của phongKhamId là PhongKham
+                    }
+                })
+                .sort({ [sort]: sortOrder })
+                
+            // Tính tổng 
+            let totalOrder = await KhamBenh.countDocuments({_idDoctor: idDoctor});
+            let totalPage = Math.ceil(totalOrder / limitNumber)
+
+            if(findOrder){
+                return res.status(200).json({
+                    message: "Tìm Order thành công!",
+                    errCode: 0,
+                    data: {
+                        findOrder: findOrder,
+                        totalOrder: totalOrder,  // Tổng số Order cho sản phẩm này
+                        totalPages: totalPage,  // Tổng số trang
+                        currentPage: pageNumber,  // Trang hiện tại
+                    }
+                })
+            } else {
+                return res.status(500).json({
+                    message: "Tìm Order thất bại!",                
+                    errCode: -1,
+                })
+            } 
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Đã xảy ra lỗi!',
+                error: error.message,
+            });
+        }
+    },
+
+    fetchAllDoctorById: async (req, res) => {
+        try {
+            const {_id } = req.query; // Lấy trang và kích thước trang từ query            
+
+            const fetchAll = await Doctor.findOne({_id: _id})
+                .populate("chucVuId chuyenKhoaId phongKhamId roleId")
+                .populate({
+                    path: 'thoiGianKham.thoiGianId', // Đường dẫn đến trường cần populate
+                    model: 'ThoiGianGio' // Tên model của trường cần populate
+                })                           
+
+            return res.status(200).json({
+                data: fetchAll,                
+                message: "Đã tìm ra bác sĩ",
+            });
+
+        } catch(error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi tìm tài khoản bác sĩ.",
                 error: error.message,
             });
         }

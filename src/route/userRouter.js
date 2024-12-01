@@ -1,5 +1,6 @@
 const express = require("express");
 import loginAdmin from '../controllers/Login/login.admin.controller';
+import loginDoctor from '../controllers/Login/login.doctor.controller';
 import loginBenhNhan from '../controllers/Login/login.user.controller';
 const router = express.Router();
 
@@ -21,5 +22,8 @@ router.get("/get-one-kh", loginBenhNhan.getOneAccKH );
 
 router.put("/doi-thong-tin", loginBenhNhan.doiThongTinKH)
 
+// route đăng nhập admin
+router.post("/login-doctor", loginDoctor.loginDoctor );
+router.post("/logout-doctor", loginDoctor.logoutDoctor );
 
 module.exports = router;
