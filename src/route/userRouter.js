@@ -22,6 +22,8 @@ router.get("/get-one-kh", loginBenhNhan.getOneAccKH );
 
 router.put("/doi-thong-tin", loginBenhNhan.doiThongTinKH)
 
+router.put("/doi-mat-khau-doctor", loginDoctor.doiThongTinDoctor)
+
 // route đăng nhập admin
 router.post("/login-doctor", loginDoctor.loginDoctor );
 router.post("/logout-doctor", loginDoctor.logoutDoctor );

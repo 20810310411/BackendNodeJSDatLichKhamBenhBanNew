@@ -70,5 +70,4 @@ router.post("/huy-order", userDoctor.handleHuyOrder );
 router.get("/find-all-order", userDoctor.findAllLichHen)
 router.get("/find-all-order-by-doctor", userDoctor.findAllLichHenByDoctor)
 
-
 module.exports = router;

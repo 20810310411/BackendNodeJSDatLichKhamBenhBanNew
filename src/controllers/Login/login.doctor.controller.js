@@ -71,4 +71,28 @@ module.exports = {
         }
     },    
 
+    doiThongTinDoctor: async (req, res) => {
+        const {_idAcc, email, lastName, firstName, password, passwordMoi} = req.body         
+        
+        // một chuỗi đã được mã hóa có thể lưu vào cơ sở dữ liệu.
+        const hashedPassword = await bcrypt.hash(passwordMoi, 10);
+
+        const updateResult = await Doctor.updateOne(
+            { _id: _idAcc }, 
+            { email, lastName, firstName, password: hashedPassword }
+        );
+        
+        if(updateResult) {
+            // Trả về kết quả thành công
+            return res.status(200).json({
+                message: "Cập nhật tài khoản thành công!",
+                data: updateResult
+            });
+        } else {
+            return res.status(404).json({                
+                message: "Chỉnh sửa thất bại"
+            })
+        }  
+    },
+
 }
