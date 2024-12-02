@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const moment = require('moment-timezone');
 const KhamBenh = require('../../model/KhamBenh');
 
-
+const nodemailer = require('nodemailer');
 
 module.exports = {
     fetchAllDoctor: async (req, res) => {
@@ -910,8 +910,7 @@ module.exports = {
                 if (newStartTime < existingEndTime && newEndTime > existingStartTime) {
                     return res.status(400).json({ message: 'Có vẻ lịch khám này đã có bệnh nhân đăng ký rồi. Vui lòng chọn thời gian khác.' });
                 }
-            }
-
+            }            
 
             let datlich = await KhamBenh.create({
                 _idDoctor, _idTaiKhoan, patientName, email,
@@ -1202,4 +1201,50 @@ module.exports = {
             });
         }
     },
+
+    fetchPhongKhamByID: async (req, res) => {
+
+        let id = req.query.id
+        console.log("id pk: ", id);
+        try {
+            const pk = await PhongKham.findById(id)
+                
+            if (!pk) {
+                return res.status(404).json({ message: 'Phong Kham không tồn tại!' });
+            }
+            return res.status(200).json({
+                message: "Đã tìm thấy Phong Kham",
+                data: pk
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
+    fetchDoctorByPhongKham: async (req, res) => {
+        let id = req.query.idPhongKham
+        console.log("idPhongKham: ", id);
+
+        try {
+            const doctor = await Doctor.find({phongKhamId: id})
+                .populate("chucVuId chuyenKhoaId phongKhamId roleId")
+                .populate({
+                    path: 'thoiGianKham.thoiGianId', // Đường dẫn đến trường cần populate
+                    model: 'ThoiGianGio' // Tên model của trường cần populate
+                })
+                
+            if (!doctor) {
+                return res.status(404).json({ message: 'Doctor không tồn tại!' });
+            }
+            return res.status(200).json({
+                message: "Đã tìm thấy Doctor",
+                data: doctor
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+
+    }, 
 }
