@@ -1475,7 +1475,7 @@ module.exports = {
     findAllLichHenByDoctor: async (req, res) => {
         try {
 
-            const { page, limit, sort, order, idDoctor } = req.query; 
+            const { page, limit, sort, order, idDoctor, search } = req.query; 
     
             // Chuyển đổi thành số
             const pageNumber = parseInt(page, 10);
@@ -1490,7 +1490,24 @@ module.exports = {
                 sortOrder = -1; 
             }
 
-            let findOrder = await KhamBenh.find({_idDoctor: idDoctor})
+            const query = {};
+            if (search) {
+                const searchKeywords = search.trim().split(/\s+/).map(keyword => {
+                    const normalizedKeyword = keyword.toLowerCase();  // Chuyển tất cả về chữ thường để không phân biệt
+                    return {
+                        $or: [
+                            { patientName: { $regex: normalizedKeyword, $options: 'i' } },  
+                            { email: { $regex: normalizedKeyword, $options: 'i' } },                                 
+                            { phone: { $regex: normalizedKeyword, $options: 'i' } },                                 
+                            // { address: { $regex: normalizedKeyword, $options: 'i' } },                                 
+                        ]
+                    };
+                }).flat();  // flat() để biến các mảng lồng vào thành một mảng phẳng
+            
+                query.$and = searchKeywords;  // Dùng $and để tìm tất cả các từ khóa
+            }
+
+            let findOrder = await KhamBenh.find({ _idDoctor: idDoctor, ...query })
                 .skip(skip)
                 .limit(limitNumber)
                 .populate('_idDoctor _idTaiKhoan') 
@@ -1504,11 +1521,11 @@ module.exports = {
                 .sort({ [sort]: sortOrder })
                 
             // Tính tổng 
-            let totalOrder = await KhamBenh.countDocuments({_idDoctor: idDoctor});
+            let totalOrder = await KhamBenh.countDocuments({ _idDoctor: idDoctor, ...query });
             let totalPage = Math.ceil(totalOrder / limitNumber)
 
             // Nhóm các bệnh nhân theo email và đếm số lần khám
-            let findOrderBN = await KhamBenh.find({_idDoctor: idDoctor})           
+            let findOrderBN = await KhamBenh.find({ _idDoctor: idDoctor, ...query })           
                 .populate('_idDoctor _idTaiKhoan') 
                 .populate({
                     path: '_idDoctor', // Populate thông tin bác sĩ
