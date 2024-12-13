@@ -24,17 +24,18 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+const transporter = nodemailer.createTransport({
+    service: 'gmail',  // Chọn dịch vụ email như Gmail
+    auth: {
+        user: 'quanthqdev@gmail.com', 
+        pass: 'jiotxdnucyulkxoh'  
+    }
+});
+
 // Hàm gửi email thông báo
 const sendAppointmentEmail = async (email, patientName, nameDoctor, tenGioKham, ngayKhamBenh, 
     giaKham, address, phone, lidokham, stringTrangThaiXacNhan, namePK, addressPK, sdtDoct, sdtPK
-    ) => {
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',  // Chọn dịch vụ email như Gmail
-        auth: {
-            user: 'quanthqdev@gmail.com', 
-            pass: 'jiotxdnucyulkxoh'  
-        }
-    });
+    ) => {    
 
     const mailOptions = {
         from: 'ADMIN', // Người gửi
@@ -94,6 +95,51 @@ const sendAppointmentEmail = async (email, patientName, nameDoctor, tenGioKham, 
 };
 
 module.exports = {
+    xacNhanLich: async (req, res) => {
+        try {
+            const { id, trangThaiXacNhan } = req.body;
+            console.log("active: ", trangThaiXacNhan);
+    
+            // Cập nhật trạng thái xác nhận trong cơ sở dữ liệu
+            const updatedAccount = await KhamBenh.findByIdAndUpdate(id, { trangThaiXacNhan }, { new: true });
+    
+            if (updatedAccount) {
+                // Lấy thông tin của bệnh nhân và bác sĩ từ tài liệu đã được cập nhật
+                const { email, patientName, tenGioKham, ngayKhamBenh, _idDoctor } = updatedAccount;
+                
+                // Tìm bác sĩ từ _idDoctor nếu cần (giả sử bạn có model Doctor để lấy tên bác sĩ)
+                const doctor = await Doctor.findById(_idDoctor).populate('chuyenKhoaId phongKhamId thoiGianKham')
+                const doctorName = doctor ? `${doctor.lastName} ${doctor.firstName}` : 'Unknown Doctor';
+    
+                // Lấy trạng thái xác nhận và tạo thông báo trạng thái
+                let stringTrangThaiXacNhan = '';
+                if(trangThaiXacNhan) {
+                    stringTrangThaiXacNhan = 'Lịch khám đã được xác nhận';
+                } else {
+                    stringTrangThaiXacNhan = 'Vui lòng chờ nhân viên gọi điện xác nhận lịch hẹn!';
+                }
+    
+                // Gửi email thông báo trạng thái lịch khám
+                await sendAppointmentEmail(
+                    email, patientName, doctorName, tenGioKham, ngayKhamBenh, updatedAccount.giaKham, 
+                    updatedAccount.address, updatedAccount.phone, updatedAccount.lidokham, 
+                    stringTrangThaiXacNhan, doctor.phongKhamId.name, doctor.phongKhamId.address, 
+                    doctor.phoneNumber, doctor.phongKhamId.sdtPK
+                );
+        
+                return res.status(200).json({ message: 'Cập nhật trạng thái lịch khám thành công và email đã được gửi.', data: updatedAccount });
+            } else {
+                return res.status(404).json({ message: "Lịch khám không tìm thấy." });
+            }
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi cập nhật trạng thái.",
+                error: error.message,
+            });
+        }
+    },
+
     datLichKham: async (req, res) => {
         try {
             const {_idDoctor, _idTaiKhoan, patientName, email,
@@ -1426,7 +1472,7 @@ module.exports = {
         }
     }, 
 
-    xacNhanLich: async (req, res) => {
+    xacNhanLich1: async (req, res) => {
         try {
             // const id = req.params.id
             const { id, trangThaiXacNhan } = req.body;
