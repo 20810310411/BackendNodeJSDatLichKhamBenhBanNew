@@ -31,5 +31,8 @@ router.post("/logout-doctor", loginDoctor.logoutDoctor );
 
 router.post("/quen-mat-khau-doctor", quenMatKhauDoctor)
 
+router.get("/get-all-kh", loginBenhNhan.getAccKH);
+router.put("/khoa-kh", loginBenhNhan.khoaAccKH);
+router.delete("/delete-kh/:id", loginBenhNhan.deleteKH);
 
 module.exports = router;
