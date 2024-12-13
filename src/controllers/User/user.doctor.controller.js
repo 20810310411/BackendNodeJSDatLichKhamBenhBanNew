@@ -94,7 +94,137 @@ const sendAppointmentEmail = async (email, patientName, nameDoctor, tenGioKham, 
     }
 };
 
+const sendAppointmentEmailBenhAn = async (email, patientName, nameDoctor, tenGioKham, ngayKhamBenh, 
+    giaKham, address, phone, lidokham, stringTrangThaiKham, benhAn, namePK, addressPK, sdtDoct, sdtPK) => {
+
+    const mailOptions = {
+        from: 'ADMIN', // Người gửi
+        to: email, // Người nhận là email bệnh nhân
+        subject: 'Thông báo kết quả khám và bệnh án',
+        html: `
+            <h2>Thông tin lịch khám và bệnh án</h2>
+            <table border="1" cellpadding="10">
+                <tr>
+                    <th>Thông tin bệnh nhân</th>
+                    <th>Thông tin lịch khám</th>
+                </tr>
+                <tr>
+                    <td><strong>Tên bệnh nhân:</strong> ${patientName}</td>
+                    <td><strong>Ngày khám:</strong> ${ngayKhamBenh}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email:</strong> ${email}</td>
+                    <td><strong>Giờ khám:</strong> ${tenGioKham}</td>
+                </tr>
+                <tr>
+                    <td><strong>Số điện thoại:</strong> ${phone}</td>
+                    <td>
+                        <strong>Bác sĩ:</strong> ${nameDoctor} <br/>
+                        <strong>Số điện thoại bác sĩ:</strong> ${sdtDoct}
+                        </td>
+                </tr>
+                <tr>
+                    <td><strong>Địa chỉ:</strong> ${address}</td>
+                    <td><strong>Giá khám:</strong> ${formatCurrency(giaKham)}</td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <strong>Tên phòng khám:</strong> ${namePK} <br/>
+                        <strong>Địa chỉ phòng khám:</strong> ${addressPK} <br/>
+                        <strong>Số điện thoại phòng khám:</strong> ${sdtPK}
+                        </td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Lí do khám: </strong> ${lidokham}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Trạng thái khám: </strong> <span style={{color: "green"}}>${stringTrangThaiKham}</span></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                    <strong>Bệnh án:</strong> ${benhAn}
+                    </td>
+                </tr>
+            </table>
+            <p>Cảm ơn bạn đã sử dụng dịch vụ khám chữa bệnh của chúng tôi. Chúng tôi hy vọng bạn sẽ có kết quả tốt và sức khỏe ngày càng tốt hơn.</p>
+        `
+    };
+
+    // Gửi email
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log("Email đã được gửi thành công!");
+    } catch (error) {
+        console.error("Lỗi khi gửi email:", error);
+    }
+};
+
+
 module.exports = {
+    updateTTBN: async (req, res) => {
+        try {
+            let { _id, benhAn, trangThaiKham } = req.body;
+            console.log("id: ", _id);
+    
+            // Cập nhật bệnh án và trạng thái khám
+            let updatedAppointment = await KhamBenh.updateOne({ _id: _id }, { benhAn, trangThaiKham });
+    
+            if (updatedAppointment) {
+                console.log("Chỉnh sửa thành công thông tin khám");
+    
+                // Tìm thông tin bệnh nhân đã được cập nhật
+                let appointment = await KhamBenh.findById(_id)
+                    .populate('_idDoctor _idTaiKhoan')
+                    .populate({
+                        path: '_idDoctor',
+                        populate: {
+                            path: 'phongKhamId', // Populate thông tin phòng khám của bác sĩ
+                            model: 'PhongKham'
+                        }
+                    });
+    
+                // Lấy thông tin cần thiết
+                const patientName = appointment.patientName;
+                const email = appointment.email;
+                const tenGioKham = appointment.tenGioKham;
+                const ngayKhamBenh = appointment.ngayKhamBenh;
+                const giaKham = appointment.giaKham;
+                const address = appointment.address;
+                const phone = appointment.phone;
+                const lidokham = appointment.lidokham;
+                const nameDoctor = `${appointment._idDoctor.firstName} ${appointment._idDoctor.lastName}`;
+                const namePK = appointment._idDoctor.phongKhamId.name;
+                const addressPK = appointment._idDoctor.phongKhamId.address;
+                const sdtPK = appointment._idDoctor.phongKhamId.sdtPK;
+                const sdtDoct = appointment._idDoctor.phoneNumber;
+                const stringTrangThaiKham = appointment.trangThaiKham ? 'Đã khám xong' : 'chưa khám bệnh';
+    
+                // Gửi email thông báo
+                await sendAppointmentEmailBenhAn(
+                    email, patientName, nameDoctor, tenGioKham, ngayKhamBenh, giaKham, 
+                    address, phone, lidokham, stringTrangThaiKham, benhAn, 
+                    namePK, addressPK, sdtDoct, sdtPK
+                );
+    
+                return res.status(200).json({
+                    data: updatedAppointment,
+                    message: "Chỉnh sửa thông tin khám bác sĩ thành công và email đã được gửi."
+                });
+            } else {
+                return res.status(404).json({
+                    message: "Chỉnh sửa thông tin khám bác sĩ thất bại"
+                });
+            }
+    
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                message: "Có lỗi xảy ra khi Chỉnh sửa tài khoản bác sĩ.",
+                error: error.message,
+            });
+        }
+    },
+    
     xacNhanLich: async (req, res) => {
         try {
             const { id, trangThaiXacNhan } = req.body;
@@ -1495,7 +1625,7 @@ module.exports = {
         }
     },
 
-    updateTTBN: async (req, res) => {
+    updateTTBN1: async (req, res) => {
         try {
             let { _id, benhAn, trangThaiKham } = req.body
 
