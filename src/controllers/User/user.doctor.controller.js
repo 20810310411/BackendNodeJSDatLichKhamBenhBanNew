@@ -1507,11 +1507,67 @@ module.exports = {
             let totalOrder = await KhamBenh.countDocuments({_idDoctor: idDoctor});
             let totalPage = Math.ceil(totalOrder / limitNumber)
 
+            // Nhóm các bệnh nhân theo email và đếm số lần khám
+            let findOrderBN = await KhamBenh.find({_idDoctor: idDoctor})           
+                .populate('_idDoctor _idTaiKhoan') 
+                .populate({
+                    path: '_idDoctor', // Populate thông tin bác sĩ
+                    populate: {
+                        path: 'phongKhamId', // Populate phongKhamId từ Doctor
+                        model: 'PhongKham' // Model của phongKhamId là PhongKham
+                    }
+                })
+                .sort({ [sort]: sortOrder })
+            let patientStatistics = [];
+
+            // Nhóm theo email chỉ khi trangThaiKham là true
+            findOrderBN.forEach(order => {
+                const { _idTaiKhoan, email, trangThaiKham, patientName, address, phone, ngayKhamBenh, tenGioKham, benhAn, lidokham } = order;
+            
+                // Chỉ xử lý bệnh nhân có trạng thái khám là true
+                if (trangThaiKham === true) {
+                    // Kiểm tra nếu bệnh nhân đã có trong mảng thống kê
+                    let patient = patientStatistics.find(p => p.email === email);
+            
+                    if (!patient) {
+                        // Nếu chưa có, tạo mới đối tượng cho bệnh nhân
+                        patient = {
+                            email,
+                            patientName,
+                            address,                            
+                            phone,
+                            totalBooked: 0,
+                            totalConfirmed: 0,
+                            patientDetails: [] // Lưu thông tin chi tiết của từng lịch khám
+                        };
+                        patientStatistics.push(patient);
+                    }
+            
+                    // Thêm lịch khám vào chi tiết của bệnh nhân
+                    patient.patientDetails.push({
+                        ngayKhamBenh,
+                        tenGioKham,
+                        benhAn,
+                        lidokham,
+                        trangThaiKham
+                    });
+            
+                    // Cập nhật số lần bệnh nhân đã đặt lịch
+                    patient.totalBooked += 1;
+            
+                    // Cập nhật số lần bệnh nhân đã khám xong
+                    patient.totalConfirmed += 1;
+                }
+            });
+
+
             if(findOrder){
                 return res.status(200).json({
                     message: "Tìm Order thành công!",
                     errCode: 0,
                     data: {
+                        patientStatistics,                                      
+
                         findOrder: findOrder,
                         totalOrder: totalOrder,  // Tổng số Order cho sản phẩm này
                         totalPages: totalPage,  // Tổng số trang
