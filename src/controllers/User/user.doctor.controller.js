@@ -8,6 +8,7 @@ const Doctor = require('../../model/Doctor');
 const ThoiGianGio = require('../../model/ThoiGianGio');
 const PhongKham = require('../../model/PhongKham');
 require('dotenv').config();
+
 // Secret key cho JWT
 const JWT_SECRET = process.env.JWT_SECRET; 
 // const moment = require('moment');
@@ -16,7 +17,185 @@ const KhamBenh = require('../../model/KhamBenh');
 
 const nodemailer = require('nodemailer');
 
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+    }).format(amount);
+};
+
+// Hàm gửi email thông báo
+const sendAppointmentEmail = async (email, patientName, nameDoctor, tenGioKham, ngayKhamBenh, 
+    giaKham, address, phone, lidokham, stringTrangThaiXacNhan, namePK, addressPK, sdtDoct, sdtPK
+    ) => {
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',  // Chọn dịch vụ email như Gmail
+        auth: {
+            user: 'quanthqdev@gmail.com', 
+            pass: 'jiotxdnucyulkxoh'  
+        }
+    });
+
+    const mailOptions = {
+        from: 'ADMIN', // Người gửi
+        to: email, // Người nhận là email bệnh nhân
+        subject: 'Xác nhận lịch khám',
+        html: `
+            <h2>Thông tin lịch khám</h2>
+            <table border="1" cellpadding="10">
+                <tr>
+                    <th>Thông tin bệnh nhân</th>
+                    <th>Thông tin lịch khám</th>
+                </tr>
+                <tr>
+                    <td><strong>Tên bệnh nhân:</strong> ${patientName}</td>
+                    <td><strong>Ngày khám:</strong> ${ngayKhamBenh}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email:</strong> ${email}</td>
+                    <td><strong>Giờ khám:</strong> ${tenGioKham}</td>
+                </tr>
+                <tr>
+                    <td><strong>Số điện thoại:</strong> ${phone}</td>
+                    <td>
+                        <strong>Bác sĩ:</strong> ${nameDoctor} <br/>
+                        <strong>Số điện thoại:</strong> ${sdtDoct}
+                        </td>
+                </tr>
+                <tr>
+                    <td><strong>Địa chỉ:</strong> ${address}</td>
+                    <td><strong>Giá khám:</strong> ${formatCurrency(giaKham)}</td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <strong>Tên phòng khám:</strong> ${namePK} <br/>
+                        <strong>Địa chỉ phòng khám:</strong> ${addressPK} <br/>
+                        <strong>Số điện thoại phòng khám:</strong> ${sdtPK}
+                        </td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Lí do khám: </strong> ${lidokham}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Trạng thái lịch hẹn: </strong> ${stringTrangThaiXacNhan}</td>
+                </tr>
+            </table>
+            <p>Cảm ơn bạn đã đặt lịch khám tại chúng tôi. Chúng tôi sẽ thông báo trước ngày khám nếu có thay đổi.</p>
+        `
+    };
+
+    // Gửi email
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log("Email đã được gửi thành công!");
+    } catch (error) {
+        console.error("Lỗi khi gửi email:", error);
+    }
+};
+
 module.exports = {
+    datLichKham: async (req, res) => {
+        try {
+            const {_idDoctor, _idTaiKhoan, patientName, email,
+                gender, phone, dateBenhNhan, address, lidokham, 
+                hinhThucTT, tenGioKham, ngayKhamBenh, giaKham
+            } = req.body;
+    
+            // Parse the date
+            const [day, month, year] = ngayKhamBenh.split('/').map(Number);
+            const appointmentDate = new Date(year, month - 1, day);
+    
+            // Parse the time range for the new appointment
+            const [startTimeStr, endTimeStr] = tenGioKham.split(' - ');
+            const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+            const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+    
+            const newStartTime = new Date(appointmentDate);
+            newStartTime.setHours(startHour, startMinute);
+    
+            const newEndTime = new Date(appointmentDate);
+            newEndTime.setHours(endHour, endMinute);
+    
+            // Check for existing appointments
+            const existingAppointments = await KhamBenh.find({
+                _idDoctor,
+                ngayKhamBenh
+            });
+    
+            // Check for overlapping appointments
+            for (const appointment of existingAppointments) {
+                const [existingStartStr, existingEndStr] = appointment.tenGioKham.split(' - ');
+                const [existingStartHour, existingStartMinute] = existingStartStr.split(':').map(Number);
+                const [existingEndHour, existingEndMinute] = existingEndStr.split(':').map(Number);
+    
+                const existingStartTime = new Date(appointmentDate);
+                existingStartTime.setHours(existingStartHour, existingStartMinute);
+    
+                const existingEndTime = new Date(appointmentDate);
+                existingEndTime.setHours(existingEndHour, existingEndMinute);
+    
+                // Check if there's an overlap
+                if (newStartTime < existingEndTime && newEndTime > existingStartTime) {
+                    return res.status(400).json({ message: 'Có vẻ lịch khám này đã có bệnh nhân đăng ký rồi. Vui lòng chọn thời gian khác.' });
+                }
+            }
+    
+            // Đặt lịch khám
+            let datlich = await KhamBenh.create({
+                _idDoctor, _idTaiKhoan, patientName, email,
+                gender, phone, dateBenhNhan, address, lidokham, 
+                hinhThucTT, tenGioKham, ngayKhamBenh, giaKham
+            });
+    
+            if (!datlich) {
+                return res.status(404).json({ message: 'Đặt lịch thất bại!' });
+            }
+
+            const populatedAppointment = await KhamBenh.findById(datlich._id)
+            .populate('_idDoctor _idTaiKhoan')
+            .populate({
+                path: '_idDoctor', // Populate thông tin bác sĩ
+                populate: {
+                    path: 'phongKhamId', // Populate phongKhamId từ Doctor
+                    model: 'PhongKham' // Model của phongKhamId là PhongKham
+                }
+            })
+            console.log("populatedAppointment: ", populatedAppointment);
+            
+            
+            let lastName = populatedAppointment._idDoctor.lastName
+            let firstName = populatedAppointment._idDoctor.firstName
+            let sdtDoct = populatedAppointment._idDoctor.phoneNumber
+            let namePK = populatedAppointment._idDoctor.phongKhamId.name
+            let addressPK = populatedAppointment._idDoctor.phongKhamId.address
+            let sdtPK = populatedAppointment._idDoctor.phongKhamId.sdtPK
+
+            console.log("namePK: ", namePK);
+            console.log("addressPK: ", addressPK);
+
+            let nameDoctor = `${lastName} ${firstName}`
+            let trangThaiXacNhan = populatedAppointment.trangThaiXacNhan
+            let stringTrangThaiXacNhan = ''
+            if(trangThaiXacNhan === true) {
+                stringTrangThaiXacNhan = 'Đã đặt lịch'
+            } else {
+                stringTrangThaiXacNhan = 'vui lòng chờ nhân viên gọi điện xác nhận lịch hẹn!'
+            }
+    
+            // Gửi email thông báo lịch khám
+            await sendAppointmentEmail(email, patientName, nameDoctor, tenGioKham, 
+                ngayKhamBenh, giaKham, address, phone, lidokham, stringTrangThaiXacNhan,
+                namePK, addressPK, sdtDoct, sdtPK
+            );
+    
+            return res.status(200).json({ message: 'Đặt lịch khám thành công!', data: datlich });
+    
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
     fetchAllDoctor: async (req, res) => {
         try {
             const { page, limit, firstName, lastName, address } = req.query; // Lấy trang và kích thước trang từ query
@@ -346,7 +525,7 @@ module.exports = {
 
     createPhongKham: async (req, res) => {
         try {
-            let {name, address, description , image} = req.body       
+            let {name, address, description , image, sdtPK} = req.body       
             console.log("anhr: ", image);
                     
             
@@ -356,7 +535,7 @@ module.exports = {
                 });
             }                   
 
-            let createPhongKham = await PhongKham.create({name, address, description , image})
+            let createPhongKham = await PhongKham.create({name, address, description , image, sdtPK})
             
             if(createPhongKham) {
                 console.log("thêm thành công phòng khám");
@@ -495,9 +674,9 @@ module.exports = {
 
     updatePhongKham: async (req, res) => {
         try {
-            let {_id, name, address, description, image} = req.body
+            let {_id, name, address, description, image, sdtPK} = req.body
             
-            let createPhongKham = await PhongKham.updateOne({_id: _id},{name, address, description, image})
+            let createPhongKham = await PhongKham.updateOne({_id: _id},{name, address, description, image, sdtPK})
             
             if(createPhongKham) {
                 console.log("Chỉnh sửa thành công tài khoản");
@@ -866,7 +1045,7 @@ module.exports = {
         }
     },
 
-    datLichKham: async (req, res) => {
+    datLichKham1: async (req, res) => {
         try {
             const {_idDoctor, _idTaiKhoan, patientName, email,
                 gender, phone, dateBenhNhan, address, lidokham, 

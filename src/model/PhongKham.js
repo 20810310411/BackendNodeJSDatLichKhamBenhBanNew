@@ -5,6 +5,7 @@ const PhongKham_Schema = new mongoose.Schema({
         address: { type: String },        
         description: { type: String },        
         image: { type: String },                
+        sdtPK: { type: String },                
     }
 );
 module.exports = mongoose.model("PhongKham", PhongKham_Schema);
