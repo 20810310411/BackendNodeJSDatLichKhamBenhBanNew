@@ -56,7 +56,7 @@ module.exports = {
             }
 
             // Tìm bác sĩ theo ID
-            const doctor = await Doctor.findById(idDoctor);
+            const doctor = await Doctor.findById(idDoctor).populate('chuyenKhoaId doctors')
     
             if (!doctor) {
                 return res.status(404).json({ message: 'Bác sĩ không tồn tại.' });
@@ -110,31 +110,12 @@ module.exports = {
         }
     },
 
-    traLoiCauHoi: async (req, res) => {
-        // try {
-        //     let {_id, cauTraLoi, cauHoi, status} = req.body
-
-        //     let update = await CauHoi.findByIdAndUpdate({_id: _id},{cauTraLoi, cauHoi, status})
-
-        //     if (update) {
-        //         return res.status(200).json({
-        //             data: update,
-        //             message: "Trả lời câu hỏi cho bệnh nhân thành công"
-        //         })
-        //     } else {
-        //         return res.status(404).json({
-        //             message: "Trả lời câu hỏi cho bệnh nhân thất bại"
-        //         })
-        //     }
-        // } catch (error) {
-        //     console.error(error);
-        //     return res.status(500).json({ message: 'Lỗi khi lấy câu hỏi', error: error.message });
-        // }
+    traLoiCauHoi: async (req, res) => {       
         try {
-            let {_id, cauTraLoi, cauHoi, status, email, firstName, lastName} = req.body;
+            let {_id, cauTraLoi, cauHoi, status, email, firstName, lastName, idDoctor} = req.body;
     
             // Cập nhật câu hỏi
-            let update = await CauHoi.findByIdAndUpdate({_id: _id}, {cauTraLoi, cauHoi, status}, {new: true});
+            let update = await CauHoi.findByIdAndUpdate({_id: _id}, {cauTraLoi, cauHoi, status, doctors: idDoctor}, {new: true});
     
             if (update) {
                 // Tạo nội dung email
@@ -207,6 +188,60 @@ module.exports = {
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Lỗi khi trả lời câu hỏi', error: error.message });
+        }
+    },
+
+    getAllCauHoi: async (req, res) => {
+        try {
+            const {page, limit, order, sort, locTheoChuyenKhoa} = req.query
+                
+            // Chuyển đổi thành số
+            const pageNumber = parseInt(page, 10);
+            const limitNumber = parseInt(limit, 10);
+
+            // Tính toán số bản ghi bỏ qua
+            const skip = (pageNumber - 1) * limitNumber; 
+            
+            let query = {}
+
+            // Tìm kiếm theo IdLoaiSP nếu có
+            if (locTheoChuyenKhoa) {
+                // Chuyển 'locTheoChuyenKhoa' từ string sang mảng ObjectId
+                const locTheoChuyenKhoaArray = Array.isArray(locTheoChuyenKhoa) ? locTheoChuyenKhoa : JSON.parse(locTheoChuyenKhoa);
+
+                query.chuyenKhoaId = { $in: locTheoChuyenKhoaArray }; // Dùng toán tử $in để lọc theo mảng các ObjectId
+            }
+
+            // tang/giam
+            let sortOrder = 1; // tang dn
+            if (order === 'desc') {
+                sortOrder = -1; 
+            }
+
+            // Tìm bác sĩ theo ID
+            const cauHoi = await CauHoi.find(query)
+            .populate('chuyenKhoaId doctors')
+            .populate({
+                path: 'doctors', // Populating `doctors`
+                model: 'Doctor', // Đảm bảo rằng bạn đã định nghĩa model 'Doctor'
+                populate: { // Nếu bạn muốn populate thêm các trường trong bác sĩ
+                    path: 'chucVuId', // Populating `chucVuId` trong schema Doctor
+                    model: 'ChucVu' // Chắc chắn bạn đã định nghĩa model `ChucVu`
+                }
+            })
+            .sort({ [sort]: sortOrder })
+
+            if (cauHoi) {
+                return res.status(200).json({
+                    message: 'Tìm thấy all câu hỏi.',
+                    data: cauHoi,                    
+                });
+            } else {
+                return res.status(404).json({ message: 'Không có câu hỏi nào' });
+            }
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Lỗi khi lấy câu hỏi', error: error.message });
         }
     }
 }

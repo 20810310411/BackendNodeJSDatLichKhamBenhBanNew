@@ -25,10 +25,10 @@ const CauHoi_Schema = new mongoose.Schema({
     cauTraLoi: { 
         type: String, 
     },
-    // doctors: [{ 
-    //     type: mongoose.Schema.Types.ObjectId, 
-    //     ref: 'Doctor' 
-    // }],
+    doctors: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Doctor' 
+    },
     status: { 
         type: Boolean, 
         default: false 
