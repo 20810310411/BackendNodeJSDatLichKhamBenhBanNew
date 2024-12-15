@@ -56,7 +56,7 @@ module.exports = {
             }
 
             // Tìm bác sĩ theo ID
-            const doctor = await Doctor.findById(idDoctor).populate('chuyenKhoaId doctors')
+            const doctor = await Doctor.findById(idDoctor)
     
             if (!doctor) {
                 return res.status(404).json({ message: 'Bác sĩ không tồn tại.' });
@@ -211,6 +211,10 @@ module.exports = {
 
                 query.chuyenKhoaId = { $in: locTheoChuyenKhoaArray }; // Dùng toán tử $in để lọc theo mảng các ObjectId
             }
+
+            // Tìm các câu hỏi đã có câu trả lời
+            query.cauTraLoi = { $ne: null }; // Trường cauTraLoi không phải null hoặc undefined
+            query.status = true
 
             // tang/giam
             let sortOrder = 1; // tang dn
