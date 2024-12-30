@@ -18,6 +18,8 @@ router.post("/login-benh-nhan", loginBenhNhan.loginBenhNhan );
 router.post("/register-benh-nhan", loginBenhNhan.registerBenhNhan);
 // route logout  benh nhan
 router.post("/logout-benh-nhan", loginBenhNhan.logoutBenhNhan );
+router.post("/create-benh-nhan", loginBenhNhan.createKH );
+router.put("/update-benh-nhan", loginBenhNhan.updateKH );
 
 router.get("/get-one-kh", loginBenhNhan.getOneAccKH );
 

@@ -987,10 +987,7 @@ module.exports = {
             // Convert date from request, ensuring the correct format
             const requestDate = moment(date, 'DD-MM-YYYY').startOf('day').format('YYYY-MM-DD');
 
-            if (!moment(requestDate, 'YYYY-MM-DD', true).isValid()) {
-                return res.status(400).json({ message: 'Ngày không hợp lệ!' });
-            }
-
+            const timeArray = time && time.length > 0 ? time : [];
             // Check if there's already a time slot for the given date
             const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
 
