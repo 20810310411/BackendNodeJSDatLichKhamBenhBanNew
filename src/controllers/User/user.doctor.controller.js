@@ -230,9 +230,8 @@ module.exports = {
             const { id, trangThaiXacNhan } = req.body;
             console.log("active: ", trangThaiXacNhan);
 
-            // Cập nhật trạng thái xác nhận trong cơ sở dữ liệu
+            // Cập nhật trạng thái xác nhận trong cơ sở dữ liệu            
             const updatedAccount = await KhamBenh.findByIdAndUpdate(id, { trangThaiXacNhan }, { new: true });
-
             if (updatedAccount) {
                 // Lấy thông tin của bệnh nhân và bác sĩ từ tài liệu đã được cập nhật
                 const { email, patientName, tenGioKham, ngayKhamBenh, _idDoctor } = updatedAccount;
@@ -1477,7 +1476,7 @@ module.exports = {
     findAllLichHenByDoctor: async (req, res) => {
         try {
 
-            const { page, limit, sort, order, idDoctor, search } = req.query;
+            const { page, limit, sort, order, idDoctor, search, locTheoLoai } = req.query;
 
             // Chuyển đổi thành số
             const pageNumber = parseInt(page, 10);
@@ -1508,6 +1507,24 @@ module.exports = {
 
                 query.$and = searchKeywords;  // Dùng $and để tìm tất cả các từ khóa
             }
+                    
+
+            if (locTheoLoai && locTheoLoai.includes('choxacnhan')) {
+                query.$and = [
+                    { trangThaiKham: false }, // Bệnh nhân chưa khám
+                    { trangThaiXacNhan: false }, // Bệnh nhân chưa xác nhận
+                ];
+            } else if (locTheoLoai && locTheoLoai.includes('chokham')) {
+                query.$and = [
+                    { trangThaiKham: false }, 
+                    { trangThaiXacNhan: true }, 
+                ];
+            } else if (locTheoLoai && locTheoLoai.includes('dakham')) {
+                query.$and = [
+                    { trangThaiKham: true }, 
+                    { trangThaiXacNhan: true }, 
+                ];
+            }            
 
             let findOrder = await KhamBenh.find({ _idDoctor: idDoctor, ...query })
                 .skip(skip)
