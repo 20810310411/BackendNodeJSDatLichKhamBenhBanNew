@@ -10,7 +10,7 @@ const KhamBenh_Schema = new mongoose.Schema({
         dateBenhNhan: { type: String },        
         address: { type: String },        
         lidokham: { type: String },        
-        hinhThucTT: { type: Boolean },        
+        hinhThucTT: { type: String },        
         tenGioKham: { type: String },        
         ngayKhamBenh: { type: String },        
         giaKham: { type: String },  
@@ -29,6 +29,10 @@ const KhamBenh_Schema = new mongoose.Schema({
             default: false
         },
         trangThaiKham: {
+            type: Boolean,
+            default: false
+        },
+        trangThaiThanhToan: {
             type: Boolean,
             default: false
         },

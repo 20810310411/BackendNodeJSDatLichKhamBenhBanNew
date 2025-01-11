@@ -7,6 +7,7 @@ const Role = require('../../model/Role'); // Đường dẫn đến model của 
 const Doctor = require('../../model/Doctor');
 const ThoiGianGio = require('../../model/ThoiGianGio');
 const PhongKham = require('../../model/PhongKham');
+const { VNPay, ProductCode, VnpLocale, ignoreLogger } = require('vnpay');
 require('dotenv').config();
 
 // Secret key cho JWT
@@ -158,6 +159,29 @@ const sendAppointmentEmailBenhAn = async (email, patientName, nameDoctor, tenGio
         console.error("Lỗi khi gửi email:", error);
     }
 };
+
+const vnpay = new VNPay({
+    tmnCode: '4WKUEION',
+    secureSecret: '2ZPPJ91HOK6J7JE6G3CUNRPGWJXJ4369',
+    vnpayHost: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+    testMode: true, // tùy chọn, ghi đè vnpayHost thành sandbox nếu là true
+    hashAlgorithm: 'SHA512', // tùy chọn
+
+    /**
+     * Sử dụng enableLog để bật/tắt logger
+     * Nếu enableLog là false, loggerFn sẽ không được sử dụng trong bất kỳ phương thức nào
+     */
+    enableLog: true, // optional
+
+    /**
+     * Hàm `loggerFn` sẽ được gọi để ghi log
+     * Mặc định, loggerFn sẽ ghi log ra console
+     * Bạn có thể ghi đè loggerFn để ghi log ra nơi khác
+     *
+     * `ignoreLogger` là một hàm không làm gì cả
+     */
+    loggerFn: ignoreLogger, // optional
+});
 
 
 module.exports = {
@@ -365,6 +389,127 @@ module.exports = {
             );
 
             return res.status(200).json({ message: 'Đặt lịch khám thành công!', data: datlich });
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra!', error });
+        }
+    },
+
+    datLichKhamTTVNPay: async (req, res) => {
+        try {
+            const { _idDoctor, _idTaiKhoan, patientName, email,
+                gender, phone, dateBenhNhan, address, lidokham,
+                hinhThucTT, tenGioKham, ngayKhamBenh, giaKham
+            } = req.body;
+
+            // Parse the date
+            const [day, month, year] = ngayKhamBenh.split('/').map(Number);
+            const appointmentDate = new Date(year, month - 1, day);
+
+            // Parse the time range for the new appointment
+            const [startTimeStr, endTimeStr] = tenGioKham.split(' - ');
+            const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+            const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+
+            const newStartTime = new Date(appointmentDate);
+            newStartTime.setHours(startHour, startMinute);
+
+            const newEndTime = new Date(appointmentDate);
+            newEndTime.setHours(endHour, endMinute);
+
+            // Check for existing appointments
+            const existingAppointments = await KhamBenh.find({
+                _idDoctor,
+                ngayKhamBenh,
+                trangThaiXacNhan: true
+            });
+
+            // Check for overlapping appointments
+            for (const appointment of existingAppointments) {
+                const [existingStartStr, existingEndStr] = appointment.tenGioKham.split(' - ');
+                const [existingStartHour, existingStartMinute] = existingStartStr.split(':').map(Number);
+                const [existingEndHour, existingEndMinute] = existingEndStr.split(':').map(Number);
+
+                const existingStartTime = new Date(appointmentDate);
+                existingStartTime.setHours(existingStartHour, existingStartMinute);
+
+                const existingEndTime = new Date(appointmentDate);
+                existingEndTime.setHours(existingEndHour, existingEndMinute);
+
+                // Check if there's an overlap
+                if (newStartTime < existingEndTime && newEndTime > existingStartTime) {
+                    return res.status(400).json({ message: 'Có vẻ lịch khám này đã có bệnh nhân đăng ký rồi. Vui lòng chọn thời gian khác.' });
+                }
+            }
+
+            // Đặt lịch khám
+            let datlich = await KhamBenh.create({
+                _idDoctor, _idTaiKhoan, patientName, email,
+                gender, phone, dateBenhNhan, address, lidokham,
+                hinhThucTT, tenGioKham, ngayKhamBenh, giaKham
+            });
+
+            if (!datlich) {
+                return res.status(404).json({ message: 'Đặt lịch thất bại!' });
+            }
+
+            const populatedAppointment = await KhamBenh.findById(datlich._id)
+                .populate('_idDoctor _idTaiKhoan')
+                .populate({
+                    path: '_idDoctor', // Populate thông tin bác sĩ
+                    populate: {
+                        path: 'phongKhamId', // Populate phongKhamId từ Doctor
+                        model: 'PhongKham' // Model của phongKhamId là PhongKham
+                    }
+                })
+            console.log("populatedAppointment: ", populatedAppointment);
+
+
+            let lastName = populatedAppointment._idDoctor.lastName
+            let firstName = populatedAppointment._idDoctor.firstName
+            let sdtDoct = populatedAppointment._idDoctor.phoneNumber
+            let namePK = populatedAppointment._idDoctor.phongKhamId.name
+            let addressPK = populatedAppointment._idDoctor.phongKhamId.address
+            let sdtPK = populatedAppointment._idDoctor.phongKhamId.sdtPK
+
+            console.log("namePK: ", namePK);
+            console.log("addressPK: ", addressPK);
+
+            let nameDoctor = `${lastName} ${firstName}`
+            let trangThaiXacNhan = populatedAppointment.trangThaiXacNhan
+            let stringTrangThaiXacNhan = ''
+            if (trangThaiXacNhan === true) {
+                stringTrangThaiXacNhan = 'Đã đặt lịch'
+            } else {
+                stringTrangThaiXacNhan = 'vui lòng chờ nhân viên gọi điện xác nhận lịch hẹn!'
+            }
+
+            // Gửi email thông báo lịch khám
+            await sendAppointmentEmail(email, patientName, nameDoctor, tenGioKham,
+                ngayKhamBenh, giaKham, address, phone, lidokham, stringTrangThaiXacNhan,
+                namePK, addressPK, sdtDoct, sdtPK
+            );
+
+            // Lấy returnUrl từ frontend gửi lên, nếu không có thì sử dụng mặc định
+            const returnUrl = req.body?.returnUrl || 'http://localhost:8089/api/doctor/vnpay_return';
+
+            // Tạo URL thanh toán
+            const paymentUrl = vnpay.buildPaymentUrl({
+                vnp_Amount: giaKham,
+                vnp_IpAddr:
+                    req.headers['x-forwarded-for'] ||
+                    req.connection.remoteAddress ||
+                    req.socket.remoteAddress ||
+                    req.ip,
+                vnp_TxnRef: datlich._id.toString(),
+                vnp_OrderInfo: `Thanh toan don hang ${datlich._id}`,
+                vnp_OrderType: ProductCode.Other,
+                vnp_ReturnUrl: returnUrl, // Đường dẫn nên là của frontend
+                vnp_Locale: VnpLocale.VN,
+            });
+
+            return res.status(200).json({ message: 'Đặt lịch khám thành công!', data: datlich, paymentUrl });
 
         } catch (error) {
             console.error(error);
@@ -976,33 +1121,36 @@ module.exports = {
         console.log("date: ", date);
         console.log("time: ", time);
         console.log("_id: ", _id);
-
+        
         try {
             const doctor = await Doctor.findById(_id);
             if (!doctor) {
                 return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
             }
-
+    
             // Convert date from request, ensuring the correct format
             const requestDate = moment(date, 'DD-MM-YYYY').startOf('day').format('YYYY-MM-DD');
-
-            const timeArray = time && time.length > 0 ? time : [];
+    
+            if (!moment(requestDate, 'YYYY-MM-DD', true).isValid()) {
+                return res.status(400).json({ message: 'Ngày không hợp lệ!' });
+            }
+    
             // Check if there's already a time slot for the given date
             const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
-
+               
             if (existingTimeSlot) {
-                // Update existing time slot
-                const existingTimeIds = existingTimeSlot.thoiGianId.map(id => id.toString());
-                const newTimeIds = time.filter(timeId => !existingTimeIds.includes(timeId));
-                existingTimeSlot.thoiGianId = [...new Set([...existingTimeSlot.thoiGianId, ...newTimeIds])];
-            } else {
-                // Create a new time slot if none exists
+                // Nếu đã tồn tại time slot, cập nhật lại danh sách thoiGianId
+                // Giữ lại các `timeId` được gửi trong yêu cầu, xóa các `timeId` không còn được chọn
+                const updatedTimeIds = time;
+                existingTimeSlot.thoiGianId = updatedTimeIds;
+            } else if (time.length > 0) {
+                // Nếu không tồn tại time slot, tạo mới chỉ khi danh sách `time` không rỗng
                 doctor.thoiGianKham.push({ date: requestDate, thoiGianId: time });
             }
-
+    
             // Call the removeExpiredTimeSlots method to clean up any expired time slots
             await doctor.removeExpiredTimeSlots();
-
+    
             // Save changes
             await doctor.save();
             return res.status(200).json({ message: 'Cập nhật lịch trình khám bệnh thành công!', data: doctor });
@@ -1507,24 +1655,31 @@ module.exports = {
 
                 query.$and = searchKeywords;  // Dùng $and để tìm tất cả các từ khóa
             }
-                    
+           
 
             if (locTheoLoai && locTheoLoai.includes('choxacnhan')) {
                 query.$and = [
                     { trangThaiKham: false }, // Bệnh nhân chưa khám
                     { trangThaiXacNhan: false }, // Bệnh nhân chưa xác nhận
+                    { trangThaiHuyDon: "Không Hủy" },
                 ];
             } else if (locTheoLoai && locTheoLoai.includes('chokham')) {
                 query.$and = [
-                    { trangThaiKham: false }, 
-                    { trangThaiXacNhan: true }, 
+                    { trangThaiKham: false },
+                    { trangThaiXacNhan: true },
+                    { trangThaiHuyDon: "Không Hủy" },
                 ];
             } else if (locTheoLoai && locTheoLoai.includes('dakham')) {
                 query.$and = [
-                    { trangThaiKham: true }, 
-                    { trangThaiXacNhan: true }, 
+                    { trangThaiKham: true },
+                    { trangThaiXacNhan: true },
+                    { trangThaiHuyDon: "Không Hủy" },
                 ];
-            }            
+            } else if (locTheoLoai && locTheoLoai.includes('dahuy')) {
+                query.$and = [
+                    { trangThaiHuyDon: "Đã Hủy" },
+                ];
+            }
 
             let findOrder = await KhamBenh.find({ _idDoctor: idDoctor, ...query })
                 .skip(skip)

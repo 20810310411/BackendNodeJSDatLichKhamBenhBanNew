@@ -12,7 +12,9 @@ const multer = require('multer');
 const path = require('path');
 const Doctor = require('./model/Doctor');
 const cron = require('node-cron');
-const moment = require('moment');
+// const moment = require('moment');
+import moment from 'moment-timezone';
+const KhamBenh = require('./model/KhamBenh');
 
 require("dotenv").config();
 
@@ -68,36 +70,68 @@ app.use("/api/doctor", uploadRouter); // Đặt đường dẫn cho upload
 app.use("/api/cauhoi", cauhoiRouter); // Đặt đường dẫn cho upload
 
 
-// Lập lịch để chạy mỗi ngày vào lúc 00:00
-// cron.schedule('0 0 * * *', async () => {
-//   try {
-//       const doctors = await Doctor.find();
+// Hàm cron job xóa lịch quá hạn
+// cron.schedule("*/10 * * * * *", async () => {
+//     try {
+        
+//         // const today = new Date().toLocaleDateString("en-CA");
+//         const today = moment().tz("Asia/Ho_Chi_Minh")
+//         const tenGio = today.format("HH:mm")
+//         console.log("today: ", today);
+//         console.log("tenGio: ", tenGio);
 
-//       for (const doctor of doctors) {
-//           // Lọc các lịch trình đã qua
-//           doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
-//           // Lưu thay đổi
-//           await doctor.save();
-//       }
-//       console.log('Đã tự động xóa các lịch trình cũ thành công!');
-//   } catch (error) {
-//       console.error('Có lỗi xảy ra khi xóa lịch trình cũ:', error);
-//   }
+//         // Xóa các lịch thỏa mãn điều kiện
+//         const result = await KhamBenh.deleteMany({
+//             ngayKhamBenh: { $lt: today.format("DD/MM/YYYY") },  // Ngày hẹn khám bệnh nhỏ hơn hôm nay
+//             trangThaiXacNhan: false,       // Chưa được xác nhận
+//             tenGioKham: { $lt: `${tenGio}` }     // nếu giờ hẹn nhỏ hơn giờ hiện tại
+//         });
+
+//         console.log(`Đã xóa ${result.deletedCount} lịch khám bệnh quá hạn.`);
+//     } catch (err) {
+//         console.error("Có lỗi xảy ra khi xóa lịch khám bệnh:", err);
+//     }
 // });
+cron.schedule("*/10 * * * * *", async () => {
+    try {
+        const today = moment().tz("Asia/Ho_Chi_Minh");
+        const tenGio = today.format("HH:mm"); // Giờ hiện tại
+        console.log("today: ", today);
+        console.log("tenGio: ", tenGio);
+
+        // Lấy tất cả các bản ghi chưa xác nhận
+        const records = await KhamBenh.find({ trangThaiXacNhan: false });
+
+        for (const record of records) {
+            const [startTime, endTime] = record.tenGioKham.split(" - "); // Phân tách giờ bắt đầu và kết thúc
+            console.log(`Start: ${startTime}, End: ${endTime}`);
+
+            // So sánh giờ bắt đầu và giờ kết thúc với giờ hiện tại
+            if (moment(tenGio, "HH:mm").isAfter(moment(startTime, "HH:mm")) && moment(tenGio, "HH:mm").isAfter(moment(endTime, "HH:mm"))) {
+                // Xóa bản ghi nếu cả hai điều kiện đều thỏa mãn
+                await KhamBenh.deleteOne({ _id: record._id });
+                console.log(`Đã xóa lịch khám bệnh ${record.tenGioKham} vì đã quá hạn.`);
+            }
+        }
+
+    } catch (err) {
+        console.error("Có lỗi xảy ra khi xóa lịch khám bệnh:", err);
+    }
+});
 
 // Hoặc sử dụng setInterval để kiểm tra thường xuyên
 setInterval(async () => {
-  try {
-      const doctors = await Doctor.find();
+    try {
+        const doctors = await Doctor.find();
 
-      for (const doctor of doctors) {
-          doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
-          await doctor.save();
-      }
-      console.log('Đã tự động xóa các lịch trình cũ thành công!');
-  } catch (error) {
-      console.error('Có lỗi xảy ra khi xóa lịch trình cũ:', error);
-  }
+        for (const doctor of doctors) {
+            doctor.thoiGianKham = doctor.thoiGianKham.filter(slot => moment(slot.date).isSameOrAfter(moment(), 'day'));
+            await doctor.save();
+        }
+        console.log('Đã tự động xóa các lịch trình cũ thành công!');
+    } catch (error) {
+        console.error('Có lỗi xảy ra khi xóa lịch trình cũ:', error);
+    }
 }, 1000 * 60 * 1); // 1 phút
 
 
