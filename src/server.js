@@ -34,6 +34,7 @@ connectDB();
 const allowedOrigins = [
     'https://khambenh.webkhactu.top',
     'http://localhost:3000', // Local development
+    'http://localhost:3003', // Local development
     'http://localhost:3001', // Local development
     'https://frontend-react-kham-benh.vercel.app', // Production
 ];
@@ -71,53 +72,54 @@ app.use("/api/cauhoi", cauhoiRouter); // Đặt đường dẫn cho upload
 
 
 // Hàm cron job xóa lịch quá hạn
-// cron.schedule("*/10 * * * * *", async () => {
-//     try {
-        
-//         // const today = new Date().toLocaleDateString("en-CA");
-//         const today = moment().tz("Asia/Ho_Chi_Minh")
-//         const tenGio = today.format("HH:mm")
-//         console.log("today: ", today);
-//         console.log("tenGio: ", tenGio);
-
-//         // Xóa các lịch thỏa mãn điều kiện
-//         const result = await KhamBenh.deleteMany({
-//             ngayKhamBenh: { $lt: today.format("DD/MM/YYYY") },  // Ngày hẹn khám bệnh nhỏ hơn hôm nay
-//             trangThaiXacNhan: false,       // Chưa được xác nhận
-//             tenGioKham: { $lt: `${tenGio}` }     // nếu giờ hẹn nhỏ hơn giờ hiện tại
-//         });
-
-//         console.log(`Đã xóa ${result.deletedCount} lịch khám bệnh quá hạn.`);
-//     } catch (err) {
-//         console.error("Có lỗi xảy ra khi xóa lịch khám bệnh:", err);
-//     }
-// });
 cron.schedule("*/10 * * * * *", async () => {
     try {
-        const today = moment().tz("Asia/Ho_Chi_Minh");
-        const tenGio = today.format("HH:mm"); // Giờ hiện tại
+        
+        // const today = new Date().toLocaleDateString("en-CA");
+        const today = moment().tz("Asia/Ho_Chi_Minh")
+        const tenGio = today.format("HH:mm")
         console.log("today: ", today);
         console.log("tenGio: ", tenGio);
 
-        // Lấy tất cả các bản ghi chưa xác nhận
-        const records = await KhamBenh.find({ trangThaiXacNhan: false });
+        // Xóa các lịch thỏa mãn điều kiện
+        const result = await KhamBenh.deleteMany({
+            ngayKhamBenh: { $lt: today.format("DD/MM/YYYY") },  // Ngày hẹn khám bệnh nhỏ hơn hôm nay
+            trangThaiXacNhan: false,       // Chưa được xác nhận
+            // tenGioKham: { $lt: `${tenGio}` }     // nếu giờ hẹn nhỏ hơn giờ hiện tại
+        });
 
-        for (const record of records) {
-            const [startTime, endTime] = record.tenGioKham.split(" - "); // Phân tách giờ bắt đầu và kết thúc
-            console.log(`Start: ${startTime}, End: ${endTime}`);
-
-            // So sánh giờ bắt đầu và giờ kết thúc với giờ hiện tại
-            if (moment(tenGio, "HH:mm").isAfter(moment(startTime, "HH:mm")) && moment(tenGio, "HH:mm").isAfter(moment(endTime, "HH:mm"))) {
-                // Xóa bản ghi nếu cả hai điều kiện đều thỏa mãn
-                await KhamBenh.deleteOne({ _id: record._id });
-                console.log(`Đã xóa lịch khám bệnh ${record.tenGioKham} vì đã quá hạn.`);
-            }
-        }
-
+        console.log(`Đã xóa ${result.deletedCount} lịch khám bệnh quá hạn.`);
     } catch (err) {
         console.error("Có lỗi xảy ra khi xóa lịch khám bệnh:", err);
     }
 });
+
+// cron.schedule("*/10 * * * * *", async () => {
+//     try {
+//         const today = moment()
+//         const tenGio = today.format("HH:mm"); // Giờ hiện tại
+//         console.log("today: ", today);
+//         console.log("tenGio: ", tenGio);
+
+//         // Lấy tất cả các bản ghi chưa xác nhận
+//         const records = await KhamBenh.find({ trangThaiXacNhan: false });
+
+//         for (const record of records) {
+//             const [startTime, endTime] = record.tenGioKham.split(" - "); // Phân tách giờ bắt đầu và kết thúc
+//             console.log(`Start: ${startTime}, End: ${endTime}`);
+
+//             // So sánh giờ bắt đầu và giờ kết thúc với giờ hiện tại
+//             if (moment(tenGio, "HH:mm").isAfter(moment(startTime, "HH:mm")) && moment(tenGio, "HH:mm").isAfter(moment(endTime, "HH:mm"))) {
+//                 // Xóa bản ghi nếu cả hai điều kiện đều thỏa mãn
+//                 await KhamBenh.deleteOne({ _id: record._id });
+//                 console.log(`Đã xóa lịch khám bệnh ${record.tenGioKham} vì đã quá hạn.`);
+//             }
+//         }
+
+//     } catch (err) {
+//         console.error("Có lỗi xảy ra khi xóa lịch khám bệnh:", err);
+//     }
+// });
 
 // Hoặc sử dụng setInterval để kiểm tra thường xuyên
 setInterval(async () => {

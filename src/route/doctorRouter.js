@@ -44,6 +44,7 @@ router.get("/fetch-all-phong-kham", userDoctor.fetchAllPhongKham);
 router.post("/create-phong-kham", userDoctor.createPhongKham);
 // route delete phòng khám
 router.delete("/delete-phong-kham/:id", userDoctor.deletePhongKham);
+router.delete("/delete-lich-hen/:id", userDoctor.deleteLichHen);
 // route update Chức vụ
 router.put("/update-phong-kham", userDoctor.updatePhongKham);
 
@@ -78,6 +79,7 @@ router.get("/doctor-phong-kham", userDoctor.fetchDoctorByPhongKham);
 
 router.put("/edit-xacnhan-lich", userDoctor.xacNhanLich);
 router.put("/edit-thongtinkham", userDoctor.updateTTBN);
+router.post("/thong-ke", userDoctor.doanhThu);
 
 router.get('/vnpay_return', async (req, res) => {
     const vnp_TxnRef = req.query.vnp_TxnRef; // Lấy mã giao dịch từ callback

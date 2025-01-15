@@ -9,7 +9,8 @@ const ThoiGianGio = require('../../model/ThoiGianGio');
 const PhongKham = require('../../model/PhongKham');
 const { VNPay, ProductCode, VnpLocale, ignoreLogger } = require('vnpay');
 require('dotenv').config();
-
+const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
 // Secret key cho JWT
 const JWT_SECRET = process.env.JWT_SECRET;
 // const moment = require('moment');
@@ -83,6 +84,63 @@ const sendAppointmentEmail = async (email, patientName, nameDoctor, tenGioKham, 
                 </tr>
             </table>
             <p>Cảm ơn bạn đã đặt lịch khám tại chúng tôi. Chúng tôi sẽ thông báo trước ngày khám nếu có thay đổi.</p>
+        `
+    };
+
+    // Gửi email
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log("Email đã được gửi thành công!");
+    } catch (error) {
+        console.error("Lỗi khi gửi email:", error);
+    }
+};
+
+const sendAppointmentEmailHuyLich = async (email, patientName, nameDoctor, tenGioKham, ngayKhamBenh,
+    giaKham, address, phone, lidokham, stringTrangThaiXacNhan, namePK, addressPK, sdtDoct, sdtPK
+) => {
+
+    const mailOptions = {
+        from: 'ADMIN', // Người gửi
+        to: email, // Người nhận là email bệnh nhân
+        subject: 'Lịch khám đã bị hủy vì quá hạn hoặc hết lịch',
+        html: `
+            <h2>Thông tin lịch khám</h2>
+            <table border="1" cellpadding="10">
+                <tr>
+                    <th>Thông tin bệnh nhân</th>
+                    <th>Thông tin lịch khám</th>
+                </tr>
+                <tr>
+                    <td><strong>Tên bệnh nhân:</strong> ${patientName}</td>
+                    <td><strong>Ngày khám:</strong> ${ngayKhamBenh}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email:</strong> ${email}</td>
+                    <td><strong>Giờ khám:</strong> ${tenGioKham}</td>
+                </tr>
+                <tr>
+                    <td><strong>Số điện thoại:</strong> ${phone}</td>
+                    <td>
+                        <strong>Bác sĩ:</strong> ${nameDoctor} <br/>
+                        <strong>Số điện thoại:</strong> ${sdtDoct}
+                        </td>
+                </tr>
+                <tr>
+                    <td><strong>Địa chỉ:</strong> ${address}</td>
+                    <td><strong>Giá khám:</strong> ${formatCurrency(giaKham)}</td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <strong>Tên phòng khám:</strong> ${namePK} <br/>
+                        <strong>Địa chỉ phòng khám:</strong> ${addressPK} <br/>
+                        <strong>Số điện thoại phòng khám:</strong> ${sdtPK}
+                        </td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Lí do khám: </strong> ${lidokham}</td>
+                </tr>               
+            </table>
         `
     };
 
@@ -191,7 +249,7 @@ module.exports = {
             console.log("id: ", _id);
 
             // Cập nhật bệnh án và trạng thái khám
-            let updatedAppointment = await KhamBenh.updateOne({ _id: _id }, { benhAn, trangThaiKham });
+            let updatedAppointment = await KhamBenh.updateOne({ _id: _id }, { benhAn, trangThaiKham, trangThaiThanhToan: true });
 
             if (updatedAppointment) {
                 console.log("Chỉnh sửa thành công thông tin khám");
@@ -1115,29 +1173,82 @@ module.exports = {
         }
     },
 
+    deleteLichHen: async (req, res) => {
+        const _id = req.params.id
+
+        const populatedAppointment = await KhamBenh.findById({ _id: _id })
+            .populate('_idDoctor _idTaiKhoan')
+            .populate({
+                path: '_idDoctor', // Populate thông tin bác sĩ
+                populate: {
+                    path: 'phongKhamId', // Populate phongKhamId từ Doctor
+                    model: 'PhongKham' // Model của phongKhamId là PhongKham
+                }
+            })
+        console.log("populatedAppointment: ", populatedAppointment);
+        let xoaAD = await KhamBenh.deleteOne({ _id: _id })
+
+        if (xoaAD) {
+
+            let lastName = populatedAppointment._idDoctor.lastName
+            let firstName = populatedAppointment._idDoctor.firstName
+            let sdtDoct = populatedAppointment._idDoctor.phoneNumber
+            let namePK = populatedAppointment._idDoctor.phongKhamId.name
+            let addressPK = populatedAppointment._idDoctor.phongKhamId.address
+            let sdtPK = populatedAppointment._idDoctor.phongKhamId.sdtPK
+
+            console.log("namePK: ", namePK);
+            console.log("addressPK: ", addressPK);
+
+            let nameDoctor = `${lastName} ${firstName}`
+            let trangThaiXacNhan = populatedAppointment.trangThaiXacNhan
+            let stringTrangThaiXacNhan = ''
+            if (trangThaiXacNhan === true) {
+                stringTrangThaiXacNhan = 'Đã đặt lịch'
+            } else {
+                stringTrangThaiXacNhan = 'vui lòng chờ nhân viên gọi điện xác nhận lịch hẹn!'
+            }
+
+            // Gửi email thông báo lịch khám
+            await sendAppointmentEmailHuyLich(populatedAppointment.email, populatedAppointment.patientName, nameDoctor, populatedAppointment.tenGioKham,
+                populatedAppointment.ngayKhamBenh, populatedAppointment.giaKham, populatedAppointment.address, populatedAppointment.phone, populatedAppointment.lidokham, stringTrangThaiXacNhan,
+                namePK, addressPK, sdtDoct, sdtPK
+            );
+
+            return res.status(200).json({
+                data: xoaAD,
+                message: "Bạn đã xoá lịch hẹn thành công!"
+            })
+        } else {
+            return res.status(500).json({
+                message: "Bạn đã xoá lịch hẹn thất bại!"
+            })
+        }
+    },
+
     // them thoi gian kham benh cho doctor
     addTimeKhamBenhDoctor: async (req, res) => {
         const { date, time, _id } = req.body;
         console.log("date: ", date);
         console.log("time: ", time);
         console.log("_id: ", _id);
-        
+
         try {
             const doctor = await Doctor.findById(_id);
             if (!doctor) {
                 return res.status(404).json({ message: 'Bác sĩ không tồn tại!' });
             }
-    
+
             // Convert date from request, ensuring the correct format
             const requestDate = moment(date, 'DD-MM-YYYY').startOf('day').format('YYYY-MM-DD');
-    
+
             if (!moment(requestDate, 'YYYY-MM-DD', true).isValid()) {
                 return res.status(400).json({ message: 'Ngày không hợp lệ!' });
             }
-    
+
             // Check if there's already a time slot for the given date
             const existingTimeSlot = doctor.thoiGianKham.find(slot => slot.date === requestDate);
-               
+
             if (existingTimeSlot) {
                 // Nếu đã tồn tại time slot, cập nhật lại danh sách thoiGianId
                 // Giữ lại các `timeId` được gửi trong yêu cầu, xóa các `timeId` không còn được chọn
@@ -1147,10 +1258,10 @@ module.exports = {
                 // Nếu không tồn tại time slot, tạo mới chỉ khi danh sách `time` không rỗng
                 doctor.thoiGianKham.push({ date: requestDate, thoiGianId: time });
             }
-    
+
             // Call the removeExpiredTimeSlots method to clean up any expired time slots
             await doctor.removeExpiredTimeSlots();
-    
+
             // Save changes
             await doctor.save();
             return res.status(200).json({ message: 'Cập nhật lịch trình khám bệnh thành công!', data: doctor });
@@ -1655,7 +1766,7 @@ module.exports = {
 
                 query.$and = searchKeywords;  // Dùng $and để tìm tất cả các từ khóa
             }
-           
+
 
             if (locTheoLoai && locTheoLoai.includes('choxacnhan')) {
                 query.$and = [
@@ -1898,6 +2009,64 @@ module.exports = {
                 message: "Có lỗi xảy ra khi Chỉnh sửa tài khoản bác sĩ.",
                 error: error.message,
             });
+        }
+    },
+
+    doanhThu: async (req, res) => {
+        try {
+            let { trangThaiKham, _idDoctor } = req.body;  // Hoặc req.body nếu bạn gửi dữ liệu trong body
+
+            console.log(" trangThaiKham, _idDoctor: ", trangThaiKham, _idDoctor);
+
+            let filter = {};
+
+            if (trangThaiKham !== undefined) {
+                // Chuyển 'dakham' thành true và 'chokham' thành false
+                if (trangThaiKham === 'dakham') {
+                    filter.trangThaiKham = true;  // Đã khám
+                } else if (trangThaiKham === 'chokham') {
+                    filter.trangThaiKham = false;  // Chưa khám
+                }
+            }
+
+            if (_idDoctor && ObjectId.isValid(_idDoctor)) {
+                // Chuyển _idDoctor thành ObjectId nếu là chuỗi hợp lệ
+                _idDoctor = new ObjectId(_idDoctor);
+            }
+
+            const orders = await KhamBenh.aggregate([
+                {
+                    // $match: filter
+                    $match: {
+                        _idDoctor: _idDoctor,  // Truyền chuỗi _idDoctor
+                        trangThaiKham: trangThaiKham === 'dakham' ? true : false,
+                        trangThaiXacNhan: true
+                    }
+                },
+                {
+                    $project: {
+                        totalCaKham: "$totalCaKham", // Tổng ca khám
+                        status: 1
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$_idDoctor", // Nhóm theo bác sĩ (_idDoctor)
+                        totalCaKham: { $sum: 1 }, // Tính tổng số ca khám (1 đơn hàng = 1 ca khám)
+                        totalOrders: { $sum: 1 }  // Tổng số đơn hàng thành công (1 đơn hàng = 1)
+                    }
+                },
+                {
+                    $sort: { "_id": 1 } // Sắp xếp theo _idDoctor nếu cần (tức là theo bác sĩ)
+                }
+            ]);
+
+            console.log("data orders: ", orders);
+
+            res.status(200).json({ data: orders });
+        } catch (error) {
+            console.error(error);  // In ra lỗi chi tiết
+            res.status(500).send("Error fetching sales data", error);
         }
     },
 }
